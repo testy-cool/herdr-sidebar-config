@@ -20,7 +20,8 @@ the running session. `--config` may name that same path, but cannot retarget an
 already-running server. `--ghostty-config`, `--font-dir`, and `--state-dir` accept
 explicit paths; repeat custom path flags for doctor and uninstall.
 
-The installer edits `[ui.sidebar.agents]` and its child tables, and sets
+The installer edits `[ui.sidebar.agents]` and its child tables, replaces only the
+workspace-name token in Spaces with bright/dim alternatives, and sets
 `[ui].agent_panel_sort = "spaces"`. Other parsed settings must remain equal or
 setup refuses the edit. Ordinary tables and array tables are supported; unusual
 inline/dotted table forms may require manual installation. A matching existing

@@ -5,7 +5,11 @@ import json
 import os
 import re
 import sys
+import time
+import tomllib
 from pathlib import Path
+from inactivity import update_inactivity
+from activity_titles import activity_title
 from runtime import PLUGIN_ID, herdr_binary, icon_mode, logo_for, run_herdr
 
 STATES = {"working": "◔", "blocked": "?", "done": "✓", "idle": "○", "unknown": "·"}
@@ -64,7 +68,7 @@ def latest_history_task(pane):
             record = json.loads(line)
         except (json.JSONDecodeError, TypeError):
             continue
-        if record.get(session_key) != session_id:
+        if not isinstance(record, dict) or record.get(session_key) != session_id:
             continue
         text = _task_text(record.get(text_key))
         if text:
@@ -76,6 +80,9 @@ def task_label(pane, tabs):
     tokens = pane.get("tokens") or {}
     if tokens.get("hs_title"):
         return tokens["hs_title"]
+    native = activity_title(pane)
+    if native:
+        return native
     if pane.get("agent_status") == "working":
         task = latest_history_task(pane)
         if task:
@@ -115,7 +122,7 @@ def desired_headers(panes, workspaces):
     return result
 
 
-def desired_rows(panes, workspaces, tabs, icons="font"):
+def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset()):
     headers = desired_headers(panes, workspaces)
     groups = {}
     tab_ids = {}
@@ -130,11 +137,16 @@ def desired_rows(panes, workspaces, tabs, icons="font"):
     for pane in panes:
         heading = headers[pane["pane_id"]]
         values = {"hs_group": heading, "hs_tab": None,
-                  "hs_gap": None, "hs_logo": None}
+                  "hs_gap": None, "hs_logo": None, "hs_terminals": None}
         values.update({f"hs_{state}": None for state in STATES})
         if pane.get("agent"):
             if heading and previous is not None:
                 result[previous]["hs_gap"] = BLANK
+            if heading:
+                shells = [tabs.get(t, "terminal") for t in tab_ids[pane["workspace_id"]]
+                          if t not in groups[pane["workspace_id"]]]
+                if shells:
+                    values["hs_terminals"] = "terminals: " + ", ".join(sorted(shells))
             tab_id = pane.get("tab_id")
             workspace_tabs = groups[pane["workspace_id"]]
             show_tree = len(tab_ids[pane["workspace_id"]]) > 1
@@ -157,8 +169,69 @@ def desired_rows(panes, workspaces, tabs, icons="font"):
                 status = "unknown"
             values[f"hs_{status}"] = STATES[status] + " " + task_label(pane, tabs)
             previous = pane["pane_id"]
+        # Mutually exclusive tokens let static Herdr styles dim a whole group.
+        for key in ["hs_group", "hs_tab", "hs_logo", *[f"hs_{s}" for s in STATES]]:
+            values[key + "_dim"] = values[key] if pane["workspace_id"] in inactive_ids else None
+            if pane["workspace_id"] in inactive_ids:
+                values[key] = None
         result[pane["pane_id"]] = values
     return result
+
+
+def read_state(path):
+    try:
+        return json.loads(path.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def refresh(clear=False):
+    state = Path(os.environ["HERDR_PLUGIN_STATE_DIR"])
+    state.mkdir(parents=True, exist_ok=True)
+    with (state / "group-headers.lock").open("w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        herdr = herdr_binary()
+        snapshot = run_herdr(herdr, "api", "snapshot")["result"]["snapshot"]
+        agents = {a["pane_id"]: a for a in snapshot["agents"]}
+        panes = [{**p, **agents.get(p["pane_id"], {})} for p in snapshot["panes"]]
+        workspaces = snapshot["workspaces"]
+        tabs = {t["tab_id"]: t["label"] for t in snapshot["tabs"]}
+        settings_path = Path(os.environ.get("HERDR_PLUGIN_CONFIG_DIR", str(state))) / "config.toml"
+        settings = tomllib.loads(settings_path.read_text()) if settings_path.exists() else {}
+        activity = update_inactivity([w["workspace_id"] for w in workspaces], panes,
+                                     read_state(state / "activity.json"), now=time.time(),
+                                     timeout=settings.get("inactive_after_seconds", 600))
+        saved = dict(activity.state, next_deadline=None if clear else activity.next_deadline)
+        temporary = state / "activity.tmp"
+        temporary.write_text(json.dumps(saved))
+        temporary.replace(state / "activity.json")
+        desired = desired_rows(panes, workspaces, tabs, icon_mode(), activity.inactive_ids)
+        source = "plugin:" + os.environ.get("HERDR_PLUGIN_ID", PLUGIN_ID)
+        for pane in panes:
+            wanted = dict.fromkeys(desired[pane["pane_id"]]) if clear else desired[pane["pane_id"]]
+            changes = changed_tokens(pane.get("tokens") or {}, wanted)
+            if not changes:
+                continue
+            args = ["pane", "report-metadata", pane["pane_id"], "--source", source]
+            for key, value in changes.items():
+                args += ["--token", key + "=" + value] if value is not None else ["--clear-token", key]
+            run_herdr(herdr, *args)
+        for workspace in workspaces:
+            wid = workspace["workspace_id"]
+            dim = wid in activity.inactive_ids
+            wanted = {"hs_space": None if dim else workspace["label"],
+                      "hs_space_dim": workspace["label"] if dim else None}
+            if clear:
+                wanted = dict.fromkeys(wanted)
+            changes = changed_tokens(workspace.get("tokens") or {}, wanted)
+            if changes:
+                args = ["workspace", "report-metadata", wid, "--source", source]
+                for key, value in changes.items():
+                    args += ["--token", key + "=" + value] if value is not None else ["--clear-token", key]
+                run_herdr(herdr, *args)
+        if activity.next_deadline is not None or (state / "deadline.lock").exists():
+            from deadline import ensure_timer
+            ensure_timer(state, start=not clear and activity.next_deadline is not None)
 
 
 def changed_tokens(existing, desired):
@@ -171,29 +244,7 @@ def main():
     args = parser.parse_args()
     if not os.environ.get("HERDR_PLUGIN_STATE_DIR"):
         raise RuntimeError("Run through Herdr: herdr plugin action invoke refresh --plugin " + PLUGIN_ID)
-    state = Path(os.environ["HERDR_PLUGIN_STATE_DIR"])
-    state.mkdir(parents=True, exist_ok=True)
-    with (state / "group-headers.lock").open("w") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX)
-        herdr = herdr_binary()
-        snapshot = run_herdr(herdr, "api", "snapshot")["result"]["snapshot"]
-        # agent.list distinguishes an unseen completion (done) from idle.
-        agents = {a["pane_id"]: a for a in snapshot["agents"]}
-        panes = [{**p, **agents.get(p["pane_id"], {})} for p in snapshot["panes"]]
-        workspaces = snapshot["workspaces"]
-        tabs = {t["tab_id"]: t["label"] for t in snapshot["tabs"]}
-        desired = desired_rows(panes, workspaces, tabs, icon_mode())
-        if args.clear:
-            desired = {pane_id: dict.fromkeys(values) for pane_id, values in desired.items()}
-        source = "plugin:" + os.environ.get("HERDR_PLUGIN_ID", PLUGIN_ID)
-        for pane in panes:
-            changes = changed_tokens(pane.get("tokens") or {}, desired[pane["pane_id"]])
-            if not changes:
-                continue
-            args = ["pane", "report-metadata", pane["pane_id"], "--source", source]
-            for key, value in changes.items():
-                args += ["--token", key + "=" + value] if value is not None else ["--clear-token", key]
-            run_herdr(herdr, *args)
+    refresh(args.clear)
 
 
 if __name__ == "__main__":

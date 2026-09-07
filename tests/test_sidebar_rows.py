@@ -72,6 +72,27 @@ class SidebarRowsTests(unittest.TestCase):
         existing = {"hs_group": "project", "hs_working": "⠿ Review"}
         self.assertEqual(changed_tokens(existing, desired), {})
 
+    def test_quiet_group_dims_and_terminal_only_tab_is_visible(self):
+        panes = [
+            {"pane_id": "p1", "workspace_id": "w1", "tab_id": "t1", "agent": "codex", "agent_status": "idle"},
+            {"pane_id": "p2", "workspace_id": "w1", "tab_id": "t2"},
+        ]
+        spaces = [{"workspace_id": "w1", "label": "project"}]
+        tabs = {"t1": "main", "t2": "explorer"}
+        dim = desired_rows(panes, spaces, tabs, inactive_ids={"w1"})
+        self.assertIsNone(dim["p1"]["hs_group"])
+        self.assertEqual(dim["p1"]["hs_group_dim"], "project")
+        self.assertEqual(dim["p1"]["hs_terminals"], "terminals: explorer")
+        self.assertIsNone(dim["p1"]["hs_idle"])
+        self.assertTrue(dim["p1"]["hs_idle_dim"].startswith("○ "))
+        panes[0]["agent_status"] = "working"
+        bright = desired_rows(panes, spaces, tabs)
+        self.assertEqual(bright["p1"]["hs_group"], "project")
+        self.assertIsNone(bright["p1"]["hs_group_dim"])
+        self.assertIsNone(bright["p1"]["hs_idle_dim"])
+        panes[1]["agent"] = "claude"
+        self.assertIsNone(desired_rows(panes, spaces, tabs)["p1"]["hs_terminals"])
+
     def test_tab_groups_use_compact_tree_guides(self):
         panes = [
             {"pane_id": "w1:p1", "workspace_id": "w1", "tab_id": "w1:t1", "agent": "codex"},

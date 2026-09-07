@@ -39,6 +39,8 @@ and follow [manual removal](docs/setup.md#manual-removal).
 | --- | --- |
 | `herdr-plugin.toml` | Plugin identity, supported platforms, lifecycle hooks, actions |
 | `sidebar.py` | Titles, grouping, tree prefixes, changed-token publishing |
+| `activity_titles.py` | Exact-session native Codex, Claude and Pi names |
+| `inactivity.py`, `deadline.py` | Quiet-period state and one sleeping deadline process |
 | `runtime.py` | CLI calls, binary discovery, font/text selection |
 | `sidebar-layout.toml` | Native Herdr rows and colors |
 | `setup_sidebar.py`, `configuration.py` | Installation, backups, removal, checks |
@@ -54,9 +56,11 @@ and follow [manual removal](docs/setup.md#manual-removal).
   Preserve the optional user-owned `hs_title` override and other plugins' tokens.
 - Keep refresh event-driven. No polling, animation timer, or `pane.updated` hook:
   metadata events can otherwise trigger repeated refreshes and UI repainting.
+  One deadline process may sleep until a workspace's ten-minute quiet period
+  expires. Its socket receives reschedule messages; it must not poll snapshots.
 - Keep one workspace heading, and one heading per tab containing agents. Hide
   all tab headings/branches when the workspace has one actual tab. Shell-only
-  tabs count toward this rule but do not create empty agent headings.
+  tabs count toward this rule and are listed in the group's gray terminals row.
 - Leave the workspace-to-tab connection plain; branches belong below tab names.
 - Retain the braille blank used for indentation. Herdr trims normal whitespace
   from token values, and continuation rows have different native indentation.

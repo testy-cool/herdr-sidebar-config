@@ -15,7 +15,8 @@ Herdr lifecycle event
 ```
 
 Each hook is a short Python process. A file lock serializes overlapping hooks.
-No persistent worker, animation timer, or polling loop runs. A refresh reads one
+One deadline process sleeps on a local socket until the next quiet-period
+deadline, with no animation timer or polling loop. A refresh reads one
 snapshot and sends at most one metadata command per changed pane. The CLI calls
 have timeouts. Frequent lifecycle events can still start many hooks; this is not
 a claim of zero overhead or a measured benchmark.
@@ -26,13 +27,18 @@ Snapshot order follows Herdr's workspace/tab/pane order. The layout requires
 workspace sorting (`agent_panel_sort = "spaces"`) to keep headers beside their
 agents. A workspace header lives on its first agent; a tab header lives on its
 first agent within a workspace with more than one actual tab. Shell-only tabs
-count toward tab identity but produce no agent rows.
+count toward tab identity and appear in a gray `hs_terminals` line on the group's
+first agent. They remain terminals; no fake agent identity is reported. A
+workspace with no detected agents at all has no anchor in Herdr's Agents panel
+and remains visible in Spaces.
 
 The outer workspace-to-tab connection has no branch. Under each tab, agents use
 `├─` and `└─`. A workspace with one tab has neither tab headings nor branches.
 The tree is presentational, with native Herdr row selection and navigation.
 
-Titles prefer a user `hs_title` token. For a working Codex or Claude pane with a
+Titles prefer a user `hs_title` token, then a native exact-session name from
+Codex's read-only SQLite/index, Claude's name/title records, or Pi's saved
+session_info. Project-only and trivial names are rejected. For a working Codex or Claude pane with a
 native session ID, the plugin scans at most the final 512 KiB of that provider's
 local history and selects its latest meaningful user instruction. Malformed
 records, injected instruction headers, screenshot markers, and vague follow-ups
@@ -51,6 +57,9 @@ Publisher: `plugin:testy-cool.herdr-sidebar`.
 | `hs_logo` | Indentation, optional branch, and provider icon/text |
 | `hs_working`, `hs_blocked`, `hs_done`, `hs_idle`, `hs_unknown` | Exactly one populated with the native status symbol and task label |
 | `hs_gap` | Blank row after the last agent before another workspace |
+| `hs_terminals` | Names of terminal-only tabs in this workspace |
+| `hs_*_dim` | Mutually exclusive dim versions of agent/group display tokens |
+| `hs_space`, `hs_space_dim` | Mutually exclusive workspace labels in Spaces |
 | `hs_title` | Optional user-owned title override; read but never written or cleared by this plugin |
 
 Absent generated values are cleared, including when a pane stops being an
@@ -61,6 +70,14 @@ disabling the plugin; future lifecycle events can repopulate them while enabled.
 U+2800, a blank braille cell, preserves indentation through metadata whitespace
 trimming. It is a spacer, not a loader. Herdr's first and continuation rows have
 different native offsets, so the prefix arithmetic is intentional.
+
+`inactivity.py` preserves a quiet start per workspace. Any working agent clears
+it; focus and title changes do not. At 600 seconds, refresh switches the label,
+heading, tab and agent tokens to their dim variants. Native lifecycle symbols
+in Spaces retain their meaning. `deadline.py` holds a single process lock and
+waits on a private Unix datagram socket until the earliest deadline. Refreshes
+reschedule that wait; no deadlines means exit. Removal clears both pane and
+workspace tokens and cancels the pending wait.
 
 ## Icon configuration
 

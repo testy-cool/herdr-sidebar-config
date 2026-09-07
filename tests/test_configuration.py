@@ -29,7 +29,8 @@ command = "my-action"
         parsed = tomllib.loads(result)
         self.assertEqual(parsed["theme"], {"name": "custom"})
         self.assertEqual(parsed["ui"]["sidebar_width"], 42)
-        self.assertEqual(parsed["ui"]["sidebar"]["spaces"], {"rows": [["workspace"]]})
+        self.assertEqual(parsed["ui"]["sidebar"]["spaces"], {"rows": [[
+            {"token": "$hs_space", "dim": False}, {"token": "$hs_space_dim", "dim": True}]]})
         self.assertEqual(parsed["keys"], tomllib.loads(original)["keys"])
         self.assertIn("# personal theme", result)
         self.assertEqual(merge_layout(result, FRAGMENT), result)

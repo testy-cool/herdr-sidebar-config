@@ -43,11 +43,15 @@ for custom paths, manual installation, and troubleshooting.
 ## What changes
 
 - **One tab:** agents sit directly beneath their workspace name.
-- **Multiple tabs:** each tab with agents gets a plain heading, with agent
-  branches below it. Shell-only tabs count toward the rule but add no empty rows.
-- **Readable labels:** working Codex and Claude panes use their latest meaningful
-  local instruction; terminal, tab, and agent names remain fallbacks. No model
-  call or generated summary is involved.
+- **Multiple tabs:** each tab with agents gets a plain heading and compact tree.
+  Tabs with no agent appear in a gray `terminals: explorer, backlog` row in the
+  workspace's agent group. This is an informational row; switch tabs normally.
+- **Inactive workspaces:** after ten minutes without any working agent, the
+  workspace label and its agent group dim. Any agent starting work restores them.
+- **Readable labels:** prefer native Codex/Claude conversation titles and Pi saved
+  names. Latest instructions, terminal, tab, and agent names remain fallbacks.
+  Conversation titles describe the task, not necessarily its latest individual
+  action. No extra model call is involved.
 - **Native state:** `◔` working, `?` blocked, `✓` completed, `○` idle, `·` unknown.
   These are static symbols, not animated loaders.
 - **Provider icons:** Claude, Codex, OpenCode, OMP, Cline, Mastra Code, Kimi,
@@ -57,6 +61,12 @@ The tree is a visual grouping; it does not add collapsible folders. Agent clicks
 and keyboard navigation remain Herdr's native behavior. Long labels are clipped
 to the sidebar width. Session history reads are local, bounded, and performed
 only during existing refresh events.
+
+The inactivity threshold defaults to 600 seconds. Set `inactive_after_seconds`
+in the plugin config to change it. A single sleeping process per session handles
+the next deadline and exits when no deadline remains. Ordinary focus changes do
+not reset a quiet workspace's timer. On first installation, quiet periods start
+when the plugin first observes each workspace.
 
 ## Refresh, update, or remove
 
@@ -90,7 +100,7 @@ map, behavior contracts, and verification commands. All setup commands accept
 `--json`; install and uninstall also accept `--dry-run`.
 
 The runtime uses only Python's standard library. It reads a local Herdr snapshot,
-optionally reads a bounded tail of matching Codex or Claude history, and publishes
+reads matching native session names and a bounded history fallback, and publishes
 changed display tokens. There is no polling loop, telemetry, network service, or
 API key. [Architecture](docs/architecture.md) documents the data flow, token names,
 icon settings, and development checks.

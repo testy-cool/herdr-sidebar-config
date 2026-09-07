@@ -13,7 +13,7 @@ import sys
 import time
 from pathlib import Path
 
-from configuration import ghostty_mapping, merge_layout
+from configuration import dimmable_spaces, ghostty_mapping, merge_layout
 from runtime import PLUGIN_ID, herdr_binary, run_herdr
 
 ROOT = Path(__file__).resolve().parent
@@ -94,7 +94,7 @@ def install(args, binary):
     changes = {p: data for p, data in files.items() if read(p) != data}
     summary = {"status": "planned", "message": "Herdr Sidebar installation plan",
                "files": [str(p) for p in changes], "plugin": PLUGIN_ID,
-               "notes": ["Replaces only agent sidebar settings and sets workspace sorting.",
+               "notes": ["Updates agent rows and workspace label dimming; preserves other space metadata.",
                          "Runtime reports display tokens; it does not prompt or stop agents."]}
     if args.dry_run:
         emit(summary, args.json)
@@ -186,6 +186,7 @@ def doctor(args, binary):
     wanted = tomllib.loads((ROOT / "sidebar-layout.toml").read_text())["ui"]["sidebar"]["agents"]
     logs = run_herdr(binary, "plugin", "log", "list", "--plugin", PLUGIN_ID, "--limit", "1")["result"]["logs"]
     checks = {"plugin_enabled": bool(info and info["enabled"]), "layout_matches": actual == wanted,
+              "workspace_dimming": config.get("ui", {}).get("sidebar", {}).get("spaces") == dimmable_spaces(config.get("ui", {}).get("sidebar", {}).get("spaces")),
               "workspace_sort": config.get("ui", {}).get("agent_panel_sort") == "spaces",
               "latest_hook_succeeded": bool(logs and logs[-1]["status"] == "succeeded")}
     settings_path = plugin_config_dir(binary) / "config.toml"
