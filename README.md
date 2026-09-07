@@ -129,6 +129,10 @@ Adapted from [moneycaringcoder/herdr-agent-icons](https://github.com/moneycaring
 with a borderless Codex mark derived from
 [qintmb/herdr-icon-agent-ui](https://github.com/qintmb/herdr-icon-agent-ui).
 
+Thanks to [hhdebb/herdr-radar](https://github.com/hhdebb/herdr-radar) for inspiring
+the activity-focused sidebar improvements and optional animated loaders. The
+loader styles here are implemented in this plugin, not copied from Radar.
+
 Code is [MIT licensed](LICENSE). Provider artwork keeps its original terms and
 trademarks; see [third-party notices](assets/THIRD_PARTY_NOTICES.md). This is an
 independent community plugin, not an official Herdr or provider product.
