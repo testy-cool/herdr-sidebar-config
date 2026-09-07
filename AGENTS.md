@@ -55,7 +55,7 @@ and follow [manual removal](docs/setup.md#manual-removal).
 - Publish only changed `hs_*` display tokens under `plugin:testy-cool.herdr-sidebar`.
   Preserve the optional user-owned `hs_title` override and other plugins' tokens.
 - Keep normal refresh event-driven; never add a `pane.updated` hook. The single
-  deadline worker may animate cached working rows at 4 fps only when the user
+  deadline worker may animate cached working rows at 8 fps only when the user
   enables `animated_loaders` (off by default). No CLI, snapshot, title lookup,
   or transcript scan per frame. With animation off or no working agents, stop
   frame wakeups completely; retain only the existing quiet-period deadline.

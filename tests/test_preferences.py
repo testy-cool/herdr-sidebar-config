@@ -11,7 +11,8 @@ from setup_sidebar import classify_preferences, edited_files
 class PreferenceTests(unittest.TestCase):
     def test_preserves_comments_and_unrelated_tables(self):
         original = '# mine\nicons = "font" # keep\n[extra]\nanswer = 42\n'
-        result = patch(original, {"icons": "text", "inactive_after_seconds": 300})
+        result = patch(original, {"icons": "text", "inactive_after_seconds": 300, "loader_style": "orbit"})
+        self.assertEqual(tomllib.loads(result)["loader_style"], "orbit")
         self.assertIn('icons = "text" # keep', result)
         self.assertTrue(result.startswith('# mine\n'))
         self.assertEqual(tomllib.loads(result)["extra"], {"answer": 42})

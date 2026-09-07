@@ -208,10 +208,10 @@ def refresh(clear=False, restore_view=False):
         ordered_panes, ranks = order_groups(panes, workspaces, settings["order"])
         animated = settings["animated_loaders"] and not clear
         desired = desired_rows(ordered_panes, workspaces, tabs, icon_mode(), activity.inactive_ids,
-                               working_glyph=glyph(time.monotonic()) if animated else "◔")
+                               working_glyph=glyph(time.monotonic(), settings["loader_style"]) if animated else "◔")
         for pane in panes:
             desired[pane["pane_id"]]["hs_workspace_rank"] = ranks.get(pane["workspace_id"]) if pane.get("agent") else None
-        rows = cache_rows(panes, desired) if animated else []
+        rows = cache_rows(panes, desired, settings["loader_style"]) if animated else []
         saved = dict(activity.state, next_deadline=None if clear else activity.next_deadline,
                      animation_rows=rows)
         temporary = state / "activity.tmp"

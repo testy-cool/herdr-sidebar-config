@@ -88,7 +88,9 @@ workspace tokens and cancels the pending wait.
 ## Optional loaders
 
 `animated_loaders = true` lets the same scheduler update cached working rows
-at four frames per second. Lifecycle refreshes cache the working pane IDs,
+at eight frames per second. `loader_style` selects dots (default), orbit or pulse;
+all frames use one braille cell instead of the old mixed quarter-circle glyphs.
+Lifecycle refreshes cache the working pane IDs, loader style,
 provider identity, selected token and task text under the shared group lock.
 Frame writes take that same lock and reread the cache, so a completed/closed
 pane cleared by a refresh cannot be repopulated by a stale frame.
@@ -105,7 +107,8 @@ deadlines remain independent.
 
 An isolated Linux Herdr 0.8.2 demo with two workspaces, one working agent and a
 140×40 terminal client was sampled for eight seconds per mode on 2026-09-08.
-Percentages below are of one CPU core, not the whole machine:
+This is the historical four-fps animation baseline, not a measurement of the
+current eight-fps styles. Percentages below are of one CPU core, not the whole machine:
 
 | Process | Animation on | Animation off |
 | --- | ---: | ---: |

@@ -8,7 +8,7 @@ import tempfile
 import tomllib
 
 DEFAULTS = {"icons": "auto", "inactive_after_seconds": 600, "order": "workspace",
-            "animated_loaders": False}
+            "animated_loaders": False, "loader_style": "dots"}
 
 
 def settings_path():
@@ -23,6 +23,8 @@ def validate(values):
         raise ValueError("Order must be workspace or activity.")
     if not isinstance(result["animated_loaders"], bool):
         raise ValueError("Animated loaders must be on or off.")
+    if result["loader_style"] not in ("dots", "orbit", "pulse"):
+        raise ValueError("Loader style must be dots, orbit, or pulse.")
     delay = result["inactive_after_seconds"]
     if isinstance(delay, bool) or not isinstance(delay, (int, float)) or not math.isfinite(delay) or delay <= 0:
         raise ValueError("Dimming delay must be a positive number of minutes.")

@@ -25,7 +25,9 @@ owns Herdr's single agent-view override, so do not combine it with another
 plugin's agent filter/sort. Switching back clears only this plugin's override.
 
 `animated_loaders = false` is the default. Enabling it animates working agents
-at four frames per second. Switching it off restores the static indicator and
+at eight frames per second. Set **Loader style** to **Dots**, **Orbit**, or
+**Pulse** (`loader_style = "dots"`, `"orbit"`, or `"pulse"`); Dots is the default.
+Changing style does not turn animation on. Switching animation off restores the static indicator and
 stops frame wakeups; ordinary inactivity dimming continues. The popup applies
 these preferences immediately without restarting Herdr or agent processes.
 

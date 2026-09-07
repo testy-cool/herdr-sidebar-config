@@ -74,14 +74,16 @@ when the plugin first observes each workspace.
 
 Press **`prefix+,`** or choose **Sidebar settings** in the command palette.
 Setup adds the shortcut only when it is free. Arrow keys change ordering,
-icons, dimming delay, and **Animated loaders: Off / On**. Enter saves and applies;
+icons, dimming delay, **Animated loaders: Off / On**, and **Loader style**. Enter saves and applies;
 Escape cancels. Preferences survive updates and removal.
 
-Loaders default to **Off**. On rotates the working glyph at four frames per
-second. Off immediately restores `◔` and stops frame updates. No working agents
+Loaders default to **Off**. Choose **Dots** (rotating trail, default), **Orbit**
+(single rotating dot), or **Pulse** (rising and falling dots). All use the same
+single-cell braille grid at eight frames per second, replacing the uneven
+quarter-circle animation. Off immediately restores `◔` and stops frame updates. No working agents
 also stops animation. Enabling animation costs extra CPU; it does not change
 agent status, run a model, or rescan transcripts per frame. See the
-[measured demo cost](docs/architecture.md#animation-cost).
+[earlier four-fps demo cost](docs/architecture.md#animation-cost).
 
 ## Refresh, update, or remove
 
