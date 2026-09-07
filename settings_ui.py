@@ -5,9 +5,11 @@ from pathlib import Path
 import preferences
 from runtime import PLUGIN_ID, herdr_binary, run_herdr
 
-FIELDS = [("icons", "Icons", ["auto", "font", "text"]),
+FIELDS = [("order", "Order", ["workspace", "activity"]),
+          ("icons", "Icons", ["auto", "font", "text"]),
           ("inactive_after_seconds", "Dim after (minutes)", None)]
-LABELS = {"auto": "Automatic", "font": "Font", "text": "Text"}
+LABELS = {"auto": "Automatic", "font": "Font", "text": "Text",
+          "workspace": "Workspace order", "activity": "Active groups first"}
 
 
 def open_popup():
@@ -59,7 +61,7 @@ def editor(screen):
                 # The popup already has plugin context. Apply synchronously so
                 # an API failure stays visible instead of reporting false success.
                 from sidebar import refresh
-                refresh()
+                refresh(restore_view=True)
                 return
             except (ValueError, RuntimeError, OSError) as error:
                 message = str(error)

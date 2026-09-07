@@ -10,6 +10,8 @@ import tomllib
 from pathlib import Path
 from inactivity import update_inactivity
 from activity_titles import activity_title
+from preferences import load as load_preferences
+from ordering import order_groups, apply_view
 from runtime import PLUGIN_ID, herdr_binary, icon_mode, logo_for, run_herdr
 
 STATES = {"working": "◔", "blocked": "?", "done": "✓", "idle": "○", "unknown": "·"}
@@ -185,7 +187,7 @@ def read_state(path):
         return {}
 
 
-def refresh(clear=False):
+def refresh(clear=False, restore_view=False):
     state = Path(os.environ["HERDR_PLUGIN_STATE_DIR"])
     state.mkdir(parents=True, exist_ok=True)
     with (state / "group-headers.lock").open("w") as lock:
@@ -197,7 +199,7 @@ def refresh(clear=False):
         workspaces = snapshot["workspaces"]
         tabs = {t["tab_id"]: t["label"] for t in snapshot["tabs"]}
         settings_path = Path(os.environ.get("HERDR_PLUGIN_CONFIG_DIR", str(state))) / "config.toml"
-        settings = tomllib.loads(settings_path.read_text()) if settings_path.exists() else {}
+        settings = load_preferences(settings_path)
         activity = update_inactivity([w["workspace_id"] for w in workspaces], panes,
                                      read_state(state / "activity.json"), now=time.time(),
                                      timeout=settings.get("inactive_after_seconds", 600))
@@ -205,7 +207,10 @@ def refresh(clear=False):
         temporary = state / "activity.tmp"
         temporary.write_text(json.dumps(saved))
         temporary.replace(state / "activity.json")
-        desired = desired_rows(panes, workspaces, tabs, icon_mode(), activity.inactive_ids)
+        ordered_panes, ranks = order_groups(panes, workspaces, settings["order"])
+        desired = desired_rows(ordered_panes, workspaces, tabs, icon_mode(), activity.inactive_ids)
+        for pane in panes:
+            desired[pane["pane_id"]]["hs_workspace_rank"] = ranks.get(pane["workspace_id"]) if pane.get("agent") else None
         source = "plugin:" + os.environ.get("HERDR_PLUGIN_ID", PLUGIN_ID)
         for pane in panes:
             wanted = dict.fromkeys(desired[pane["pane_id"]]) if clear else desired[pane["pane_id"]]
@@ -229,6 +234,11 @@ def refresh(clear=False):
                 for key, value in changes.items():
                     args += ["--token", key + "=" + value] if value is not None else ["--clear-token", key]
                 run_herdr(herdr, *args)
+        mode = "workspace" if clear else settings["order"]
+        view_path = state / "view.json"
+        if clear or restore_view or read_state(view_path).get("order") != mode:
+            apply_view(mode)
+            view_path.write_text(json.dumps({"order": mode}))
         if activity.next_deadline is not None or (state / "deadline.lock").exists():
             from deadline import ensure_timer
             ensure_timer(state, start=not clear and activity.next_deadline is not None)
@@ -243,6 +253,7 @@ def main():
     parser.add_argument("--clear", action="store_true", help="clear this plugin's display tokens")
     parser.add_argument("--settings", action="store_true", help="run the settings popup")
     parser.add_argument("--settings-open", action="store_true", help="open the settings popup")
+    parser.add_argument("--restore-view", action="store_true", help="restore saved ordering on startup")
     args = parser.parse_args()
     if not os.environ.get("HERDR_PLUGIN_STATE_DIR"):
         raise RuntimeError("Run through Herdr: herdr plugin action invoke refresh --plugin " + PLUGIN_ID)
@@ -250,7 +261,7 @@ def main():
         import settings_ui
         settings_ui.open_popup() if args.settings_open else settings_ui.main()
         return
-    refresh(args.clear)
+    refresh(args.clear, restore_view=args.restore_view)
 
 
 if __name__ == "__main__":

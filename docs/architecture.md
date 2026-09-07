@@ -24,8 +24,14 @@ a claim of zero overhead or a measured benchmark.
 ## Grouping and titles
 
 Snapshot order follows Herdr's workspace/tab/pane order. The layout requires
-workspace sorting (`agent_panel_sort = "spaces"`) to keep headers beside their
-agents. A workspace header lives on its first agent; a tab header lives on its
+workspace sorting (`agent_panel_sort = "spaces"`) as its default. Optional
+activity ordering ranks whole workspaces by working status, then the latest
+native lifecycle-change sequence; ties retain native order. A hidden
+`hs_workspace_rank` token and `agent.view.set` apply this same order to Herdr's
+view. Tabs and panes retain native order, and headings are generated from the
+ordered rows. The view is restored at startup and cleared by owner when returning
+to workspace order or removing the plugin. It does not filter agents or move
+actual workspaces. A workspace header lives on its first agent; a tab header lives on its
 first agent within a workspace with more than one actual tab. Shell-only tabs
 count toward tab identity and appear in a gray `hs_terminals` line on the group's
 first agent. They remain terminals; no fake agent identity is reported. A

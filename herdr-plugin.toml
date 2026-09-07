@@ -6,7 +6,7 @@ description = "Workspace, tab, and agent tree preset with compact single-tab gro
 platforms = ["linux", "macos"]
 
 [[startup]]
-command = ["sh", "run.sh"]
+command = ["sh", "run.sh", "--restore-view"]
 
 [[panes]]
 id = "settings"

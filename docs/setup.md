@@ -6,7 +6,7 @@ flow. Run setup from the same checkout and Herdr session each time.
 ## Files setup manages
 
 Open **Sidebar settings** from the command palette or press `prefix+,` (setup
-adds this shortcut only when unclaimed). Arrow keys change icons and the dimming
+adds this shortcut only when unclaimed). Arrow keys change ordering, icons and the dimming
 delay; type a number on the minutes row for an exact delay. Enter saves and
 applies once; Escape cancels. You can also open it with:
 
@@ -17,6 +17,12 @@ herdr plugin action invoke settings --plugin testy-cool.herdr-sidebar
 Plugin preferences are user-owned. Updates retain them, `--text` explicitly
 selects text icons, and uninstall leaves preferences available for a later
 reinstall. Older setup backups are migrated without losing their original bytes.
+
+Ordering defaults to `order = "workspace"`. Choose `"activity"` to bring working
+workspace groups forward, followed by recent lifecycle activity. Tabs and agents
+stay together in their original order; Spaces is unchanged. The activity view
+owns Herdr's single agent-view override, so do not combine it with another
+plugin's agent filter/sort. Switching back clears only this plugin's override.
 
 | Item | Default location |
 | --- | --- |

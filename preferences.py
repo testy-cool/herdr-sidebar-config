@@ -7,7 +7,7 @@ import re
 import tempfile
 import tomllib
 
-DEFAULTS = {"icons": "auto", "inactive_after_seconds": 600}
+DEFAULTS = {"icons": "auto", "inactive_after_seconds": 600, "order": "workspace"}
 
 
 def settings_path():
@@ -18,6 +18,8 @@ def validate(values):
     result = dict(DEFAULTS, **values)
     if result["icons"] not in ("auto", "font", "text"):
         raise ValueError("Icons must be automatic, font, or text.")
+    if result["order"] not in ("workspace", "activity"):
+        raise ValueError("Order must be workspace or activity.")
     delay = result["inactive_after_seconds"]
     if isinstance(delay, bool) or not isinstance(delay, (int, float)) or not math.isfinite(delay) or delay <= 0:
         raise ValueError("Dimming delay must be a positive number of minutes.")
