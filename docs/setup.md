@@ -5,6 +5,19 @@ flow. Run setup from the same checkout and Herdr session each time.
 
 ## Files setup manages
 
+Open **Sidebar settings** from the command palette or press `prefix+,` (setup
+adds this shortcut only when unclaimed). Arrow keys change icons and the dimming
+delay; type a number on the minutes row for an exact delay. Enter saves and
+applies once; Escape cancels. You can also open it with:
+
+```sh
+herdr plugin action invoke settings --plugin testy-cool.herdr-sidebar
+```
+
+Plugin preferences are user-owned. Updates retain them, `--text` explicitly
+selects text icons, and uninstall leaves preferences available for a later
+reinstall. Older setup backups are migrated without losing their original bytes.
+
 | Item | Default location |
 | --- | --- |
 | Herdr layout | `$XDG_CONFIG_HOME/herdr/config.toml`, or `~/.config/herdr/config.toml` |
@@ -30,7 +43,8 @@ layout is left alone.
 Backups contain original file bytes, including any private values already in
 your config. They are local files written with restrictive permissions; never
 publish them. Repeated installs retain the first backup. Setup and removal stop
-if a tracked file has since changed. An interrupted setup retains its backup for
+if a managed layout/font file has since changed; editable plugin preferences are
+excluded from that guard and from restoration. An interrupted setup retains its backup for
 inspection and recovery. The helper is intended for one active session at a
 time; other running sessions that share the config may need their own refresh.
 

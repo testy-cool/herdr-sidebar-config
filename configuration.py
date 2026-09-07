@@ -8,6 +8,27 @@ import tomllib
 HEADERS = re.compile(r"(?m)^[ \t]*(\[\[?[^\]\n]+\]\]?)[ \t]*(?:#.*)?$")
 
 
+def settings_binding(text):
+    """Use an unclaimed shortcut; never replace a user's existing binding."""
+    parsed = tomllib.loads(text)
+    def claimed(value):
+        if isinstance(value, str):
+            return value.lower() in {"prefix+comma", "prefix+,"}
+        if isinstance(value, dict):
+            return any(claimed(v) for v in value.values())
+        return isinstance(value, list) and any(claimed(v) for v in value)
+    if claimed(parsed.get("keys", {})):
+        return text
+    addition = ('\n[[keys.command]]\nkey = "prefix+comma"\ntype = "plugin_action"\n'
+                'command = "testy-cool.herdr-sidebar.settings"\ndescription = "Sidebar settings"\n')
+    result = text.rstrip() + "\n" + addition
+    expected = copy.deepcopy(parsed)
+    expected.setdefault("keys", {}).setdefault("command", []).append(tomllib.loads(addition)["keys"]["command"][0])
+    if tomllib.loads(result) != expected:
+        raise ValueError("Cannot safely add the sidebar settings shortcut.")
+    return result
+
+
 def dimmable_spaces(spaces):
     """Replace just the workspace label; retain the user's branches and spacing."""
     result = copy.deepcopy(spaces or {"rows": [["state_icon", "workspace"], ["branch", "git_status"]]})

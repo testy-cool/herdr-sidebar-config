@@ -8,6 +8,21 @@ platforms = ["linux", "macos"]
 [[startup]]
 command = ["sh", "run.sh"]
 
+[[panes]]
+id = "settings"
+title = "Sidebar settings"
+placement = "popup"
+width = 68
+height = 17
+command = ["sh", "run.sh", "--settings"]
+
+[[actions]]
+id = "settings"
+title = "Sidebar settings"
+description = "Change sidebar preferences without restarting Herdr."
+contexts = ["global"]
+command = ["sh", "run.sh", "--settings-open"]
+
 [[actions]]
 id = "refresh"
 title = "Refresh agent sidebar"

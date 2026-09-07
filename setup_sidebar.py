@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 import time
+import tomllib
 from pathlib import Path
 
 from configuration import dimmable_spaces, ghostty_mapping, merge_layout
@@ -76,9 +77,15 @@ def invoke(binary, action):
 
 
 def plan(args, config_dir):
+    from configuration import settings_binding
+    from preferences import patch
     original = read(args.config) or b""
-    result = {args.config: merge_layout(original.decode(), (ROOT / "sidebar-layout.toml").read_text()).encode(),
-              config_dir / "config.toml": ('icons = "text"\n' if args.text else 'icons = "font"\n').encode()}
+    preferences_path = config_dir / "config.toml"
+    existing = (read(preferences_path) or b"").decode()
+    # Normal upgrades retain the chosen icon mode. --text is an explicit choice.
+    changes = {"icons": "text"} if args.text else ({"icons": "font"} if "icons" not in tomllib.loads(existing) else {})
+    result = {args.config: settings_binding(merge_layout(original.decode(), (ROOT / "sidebar-layout.toml").read_text())).encode(),
+              preferences_path: patch(existing, changes).encode()}
     if not args.text:
         result[args.ghostty_config] = ghostty_mapping((read(args.ghostty_config) or b"").decode()).encode()
         result[args.font_dir / FONT] = (ROOT / "dist" / FONT).read_bytes()
@@ -101,6 +108,7 @@ def install(args, binary):
         return
     record = args.state_dir / "install.json"
     state = json.loads(record.read_text()) if record.exists() else {"files": {}, "created_link": not bool(existing)}
+    classify_preferences(state, config_dir / "config.toml")
     edited = edited_files(state)
     if edited:
         raise RuntimeError("Files changed since setup: " + ", ".join(edited) +
@@ -111,6 +119,8 @@ def install(args, binary):
             "before": base64.b64encode(read(path)).decode() if path.exists() else None,
         })
         entry["installed_sha256"] = digest(data)
+        if path == config_dir / "config.toml":
+            entry["user_editable"] = True
     write(record, json.dumps(state, indent=2).encode())
     for path, data in changes.items():
         write(path, data)
@@ -136,7 +146,14 @@ def install(args, binary):
 
 def edited_files(state):
     return [path for path, entry in state["files"].items()
-            if read(Path(path)) is None or digest(read(Path(path))) != entry["installed_sha256"]]
+            if not entry.get("user_editable") and
+            (read(Path(path)) is None or digest(read(Path(path))) != entry["installed_sha256"])]
+
+
+def classify_preferences(state, path):
+    # Migrate old setup records without discarding their original backup bytes.
+    if str(path) in state["files"]:
+        state["files"][str(path)]["user_editable"] = True
 
 
 def reload_config(binary):
@@ -150,12 +167,13 @@ def uninstall(args, binary):
     if not record.exists():
         raise RuntimeError("No setup backup found. Use the README's manual removal steps.")
     state = json.loads(record.read_text())
+    classify_preferences(state, plugin_config_dir(binary) / "config.toml")
     edited = edited_files(state)
     if edited:
         raise RuntimeError("These files changed since installation; refusing to overwrite them: " +
                            ", ".join(edited) + f". Original contents are in {record}; see manual removal.")
     summary = {"status": "planned", "message": "Restore backed-up files and disable Herdr Sidebar.",
-               "files": list(state["files"])}
+               "files": [p for p, entry in state["files"].items() if not entry.get("user_editable")]}
     if args.dry_run:
         emit(summary, args.json)
         return
@@ -165,6 +183,8 @@ def uninstall(args, binary):
             invoke(binary, "clear")
         run_herdr(binary, "plugin", "disable", PLUGIN_ID)
     for path, entry in state["files"].items():
+        if entry.get("user_editable"):
+            continue
         if entry["before"] is None:
             Path(path).unlink(missing_ok=True)
         else:

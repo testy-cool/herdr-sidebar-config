@@ -241,9 +241,15 @@ def changed_tokens(existing, desired):
 def main():
     parser = argparse.ArgumentParser(description="Refresh the Herdr workspace/tab/agent sidebar.")
     parser.add_argument("--clear", action="store_true", help="clear this plugin's display tokens")
+    parser.add_argument("--settings", action="store_true", help="run the settings popup")
+    parser.add_argument("--settings-open", action="store_true", help="open the settings popup")
     args = parser.parse_args()
     if not os.environ.get("HERDR_PLUGIN_STATE_DIR"):
         raise RuntimeError("Run through Herdr: herdr plugin action invoke refresh --plugin " + PLUGIN_ID)
+    if args.settings or args.settings_open:
+        import settings_ui
+        settings_ui.open_popup() if args.settings_open else settings_ui.main()
+        return
     refresh(args.clear)
 
 
