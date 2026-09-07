@@ -54,10 +54,12 @@ and follow [manual removal](docs/setup.md#manual-removal).
   keystrokes, stop commands, or synthetic agent states from the plugin runtime.
 - Publish only changed `hs_*` display tokens under `plugin:testy-cool.herdr-sidebar`.
   Preserve the optional user-owned `hs_title` override and other plugins' tokens.
-- Keep refresh event-driven. No polling, animation timer, or `pane.updated` hook:
-  metadata events can otherwise trigger repeated refreshes and UI repainting.
-  One deadline process may sleep until a workspace's ten-minute quiet period
-  expires. Its socket receives reschedule messages; it must not poll snapshots.
+- Keep normal refresh event-driven; never add a `pane.updated` hook. The single
+  deadline worker may animate cached working rows at 4 fps only when the user
+  enables `animated_loaders` (off by default). No CLI, snapshot, title lookup,
+  or transcript scan per frame. With animation off or no working agents, stop
+  frame wakeups completely; retain only the existing quiet-period deadline.
+  Frame writes and lifecycle refreshes share the group lock to prevent stale rows.
 - Keep one workspace heading, and one heading per tab containing agents. Hide
   all tab headings/branches when the workspace has one actual tab. Shell-only
   tabs count toward this rule and are listed in the group's gray terminals row.

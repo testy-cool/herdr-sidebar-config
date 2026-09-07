@@ -1,4 +1,4 @@
-"""One sleeping process per session; wake only at a quiet-workspace deadline."""
+"""One scheduler: quiet deadlines plus optional, working-only animation frames."""
 import fcntl
 import os
 import hashlib
@@ -41,31 +41,50 @@ def ensure_timer(state, start=True):
 
 def run():
     from sidebar import read_state, refresh
-    from runtime import PLUGIN_ID, herdr_binary, run_herdr
+    from runtime import PLUGIN_ID
+    from ipc import call
+    from animation import INTERVAL, publish_frame
     state = Path(os.environ["HERDR_PLUGIN_STATE_DIR"])
     with os.fdopen(int(sys.argv[1]), "a") as timer_lock, socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as wake:
         path = Path(address(state))
         path.unlink(missing_ok=True)
         wake.bind(str(path))
         path.chmod(0o600)
+        next_frame = time.monotonic() + INTERVAL
         while True:
             with (state / "group-headers.lock").open("a") as lock:
                 fcntl.flock(lock, fcntl.LOCK_EX)
-                deadline = read_state(state / "activity.json").get("next_deadline")
-                if deadline is None:
+                cached = read_state(state / "activity.json")
+                deadline = cached.get("next_deadline")
+                rows = cached.get("animation_rows") or []
+                if deadline is None and not rows:
                     path.unlink(missing_ok=True)
                     fcntl.flock(timer_lock, fcntl.LOCK_UN)
                     return
-            delay = deadline - time.time()
+                # The same lock protects lifecycle refreshes and frame writes.
+                # Once a refresh clears a row, no old frame can put it back.
+                if rows and time.monotonic() >= next_frame:
+                    if not publish_frame(rows, time.monotonic()):
+                        path.unlink(missing_ok=True)
+                        return
+                    next_frame = time.monotonic() + INTERVAL
+                elif not rows:
+                    next_frame = time.monotonic() + INTERVAL
+                waits = []
+                if deadline is not None:
+                    waits.append(deadline - time.time())
+                if rows:
+                    waits.append(next_frame - time.monotonic())
+                delay = max(0, min(waits))
             if delay > 0:
                 wake.settimeout(delay)
                 try:
                     wake.recv(128)
-                    continue
                 except socket.timeout:
                     pass
+                continue
             # Disabled plugins must not repopulate metadata after uninstall.
-            plugins = run_herdr(herdr_binary(), "plugin", "list", "--json")["result"]["plugins"]
+            plugins = call("plugin.list", {"plugin_id": PLUGIN_ID})["plugins"]
             if not any(p["plugin_id"] == PLUGIN_ID and p["enabled"] for p in plugins):
                 path.unlink(missing_ok=True)
                 return
@@ -73,4 +92,9 @@ def run():
 
 
 if __name__ == "__main__":
-    run()
+    try:
+        run()
+    except (OSError, RuntimeError, ValueError) as error:
+        # A failed server request ends the worker instead of spinning retries.
+        # A later lifecycle event can start a fresh worker.
+        print(f"Sidebar scheduler stopped: {error}", file=sys.stderr)

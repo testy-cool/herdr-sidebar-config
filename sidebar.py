@@ -124,7 +124,7 @@ def desired_headers(panes, workspaces):
     return result
 
 
-def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset()):
+def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset(), working_glyph="◔"):
     headers = desired_headers(panes, workspaces)
     groups = {}
     tab_ids = {}
@@ -169,7 +169,8 @@ def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset()
             status = pane.get("agent_status", "unknown")
             if status not in STATES:
                 status = "unknown"
-            values[f"hs_{status}"] = STATES[status] + " " + task_label(pane, tabs)
+            mark = working_glyph if status == "working" else STATES[status]
+            values[f"hs_{status}"] = mark + " " + task_label(pane, tabs)
             previous = pane["pane_id"]
         # Mutually exclusive tokens let static Herdr styles dim a whole group.
         for key in ["hs_group", "hs_tab", "hs_logo", *[f"hs_{s}" for s in STATES]]:
@@ -203,14 +204,19 @@ def refresh(clear=False, restore_view=False):
         activity = update_inactivity([w["workspace_id"] for w in workspaces], panes,
                                      read_state(state / "activity.json"), now=time.time(),
                                      timeout=settings.get("inactive_after_seconds", 600))
-        saved = dict(activity.state, next_deadline=None if clear else activity.next_deadline)
+        from animation import glyph, cache_rows
+        ordered_panes, ranks = order_groups(panes, workspaces, settings["order"])
+        animated = settings["animated_loaders"] and not clear
+        desired = desired_rows(ordered_panes, workspaces, tabs, icon_mode(), activity.inactive_ids,
+                               working_glyph=glyph(time.monotonic()) if animated else "◔")
+        for pane in panes:
+            desired[pane["pane_id"]]["hs_workspace_rank"] = ranks.get(pane["workspace_id"]) if pane.get("agent") else None
+        rows = cache_rows(panes, desired) if animated else []
+        saved = dict(activity.state, next_deadline=None if clear else activity.next_deadline,
+                     animation_rows=rows)
         temporary = state / "activity.tmp"
         temporary.write_text(json.dumps(saved))
         temporary.replace(state / "activity.json")
-        ordered_panes, ranks = order_groups(panes, workspaces, settings["order"])
-        desired = desired_rows(ordered_panes, workspaces, tabs, icon_mode(), activity.inactive_ids)
-        for pane in panes:
-            desired[pane["pane_id"]]["hs_workspace_rank"] = ranks.get(pane["workspace_id"]) if pane.get("agent") else None
         source = "plugin:" + os.environ.get("HERDR_PLUGIN_ID", PLUGIN_ID)
         for pane in panes:
             wanted = dict.fromkeys(desired[pane["pane_id"]]) if clear else desired[pane["pane_id"]]
@@ -239,9 +245,10 @@ def refresh(clear=False, restore_view=False):
         if clear or restore_view or read_state(view_path).get("order") != mode:
             apply_view(mode)
             view_path.write_text(json.dumps({"order": mode}))
-        if activity.next_deadline is not None or (state / "deadline.lock").exists():
+        pending = not clear and (activity.next_deadline is not None or bool(rows))
+        if pending or (state / "deadline.lock").exists():
             from deadline import ensure_timer
-            ensure_timer(state, start=not clear and activity.next_deadline is not None)
+            ensure_timer(state, start=pending)
 
 
 def changed_tokens(existing, desired):

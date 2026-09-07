@@ -53,7 +53,9 @@ for custom paths, manual installation, and troubleshooting.
   Conversation titles describe the task, not necessarily its latest individual
   action. No extra model call is involved.
 - **Native state:** `◔` working, `?` blocked, `✓` completed, `○` idle, `·` unknown.
-  These are static symbols, not animated loaders.
+  Static by default; optional rotating loaders animate working agents only.
+- **Optional activity order:** bring working workspace groups forward, followed
+  by recent lifecycle activity. Tabs and agents keep their order within groups.
 - **Provider icons:** Claude, Codex, OpenCode, OMP, Cline, Mastra Code, Kimi,
   Kilo, and Maki. Other agents get a diamond fallback.
 
@@ -64,9 +66,22 @@ only during existing refresh events.
 
 The inactivity threshold defaults to 600 seconds. Set `inactive_after_seconds`
 in the plugin config to change it. A single sleeping process per session handles
-the next deadline and exits when no deadline remains. Ordinary focus changes do
+the next deadline and exits when no deadline or enabled animation remains. Ordinary focus changes do
 not reset a quiet workspace's timer. On first installation, quiet periods start
 when the plugin first observes each workspace.
+
+## Settings
+
+Press **`prefix+,`** or choose **Sidebar settings** in the command palette.
+Setup adds the shortcut only when it is free. Arrow keys change ordering,
+icons, dimming delay, and **Animated loaders: Off / On**. Enter saves and applies;
+Escape cancels. Preferences survive updates and removal.
+
+Loaders default to **Off**. On rotates the working glyph at four frames per
+second. Off immediately restores `◔` and stops frame updates. No working agents
+also stops animation. Enabling animation costs extra CPU; it does not change
+agent status, run a model, or rescan transcripts per frame. See the
+[measured demo cost](docs/architecture.md#animation-cost).
 
 ## Refresh, update, or remove
 
@@ -89,7 +104,7 @@ python3 setup_sidebar.py uninstall
 ```
 
 Removal clears generated tokens, disables the plugin, and restores its backups.
-It keeps the checkout and disabled registration. If any managed file changed
+It keeps the checkout, plugin preferences, and disabled registration. If any managed layout/font file changed
 since setup, removal stops before writing; [manual removal](docs/setup.md#manual-removal)
 explains how to keep those edits.
 
@@ -101,8 +116,9 @@ map, behavior contracts, and verification commands. All setup commands accept
 
 The runtime uses only Python's standard library. It reads a local Herdr snapshot,
 reads matching native session names and a bounded history fallback, and publishes
-changed display tokens. There is no polling loop, telemetry, network service, or
-API key. [Architecture](docs/architecture.md) documents the data flow, token names,
+changed display tokens. The default is event-driven, with no animation polling.
+Opt-in loaders use the existing scheduler and direct local socket requests.
+There is no telemetry, network service, or API key. [Architecture](docs/architecture.md) documents the data flow, token names,
 icon settings, and development checks.
 
 ## Credits and license

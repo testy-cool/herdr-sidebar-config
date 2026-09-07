@@ -211,6 +211,12 @@ def doctor(args, binary):
               "latest_hook_succeeded": bool(logs and logs[-1]["status"] == "succeeded")}
     settings_path = plugin_config_dir(binary) / "config.toml"
     settings = tomllib.loads(settings_path.read_text()) if settings_path.exists() else {}
+    from preferences import validate
+    try:
+        validate(settings)
+        checks["preferences_valid"] = True
+    except ValueError:
+        checks["preferences_valid"] = False
     mode = settings.get("icons", "auto")
     checks["icon_mode_valid"] = mode in {"auto", "font", "text"}
     if mode == "font":

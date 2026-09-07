@@ -16,7 +16,7 @@ Herdr lifecycle event
 
 Each hook is a short Python process. A file lock serializes overlapping hooks.
 One deadline process sleeps on a local socket until the next quiet-period
-deadline, with no animation timer or polling loop. A refresh reads one
+deadline. Animation is off by default. A refresh reads one
 snapshot and sends at most one metadata command per changed pane. The CLI calls
 have timeouts. Frequent lifecycle events can still start many hooks; this is not
 a claim of zero overhead or a measured benchmark.
@@ -84,6 +84,39 @@ in Spaces retain their meaning. `deadline.py` holds a single process lock and
 waits on a private Unix datagram socket until the earliest deadline. Refreshes
 reschedule that wait; no deadlines means exit. Removal clears both pane and
 workspace tokens and cancels the pending wait.
+
+## Optional loaders
+
+`animated_loaders = true` lets the same scheduler update cached working rows
+at four frames per second. Lifecycle refreshes cache the working pane IDs,
+provider identity, selected token and task text under the shared group lock.
+Frame writes take that same lock and reread the cache, so a completed/closed
+pane cleared by a refresh cannot be repopulated by a stale frame.
+
+Frames use direct socket requests: one narrow plugin-registry lookup to stop
+when disabled, then one working-token patch per cached working pane. No CLI
+process, snapshot, title computation or transcript scan runs per frame. API
+failure ends the worker rather than retrying in a busy loop. The next lifecycle
+refresh can restart it. Turning animation off immediately publishes `◔` and
+empties the cache; no working rows means no frame deadlines. Quiet-workspace
+deadlines remain independent.
+
+### Animation cost
+
+An isolated Linux Herdr 0.8.2 demo with two workspaces, one working agent and a
+140×40 terminal client was sampled for eight seconds per mode on 2026-09-08.
+Percentages below are of one CPU core, not the whole machine:
+
+| Process | Animation on | Animation off |
+| --- | ---: | ---: |
+| Herdr server | 2.00% | 0.25% |
+| Herdr client | 0.625% | 0.00% |
+| Shared scheduler | 0.25% | 0.00% |
+
+The scheduler used about 10.2 MiB PSS in both modes because a dimming deadline
+was pending. The disabled client produced no new rendering bytes during the
+observation. These short, one-agent measurements are not a many-agent benchmark;
+cost increases with working rows and depends on the terminal and machine.
 
 ## Icon configuration
 

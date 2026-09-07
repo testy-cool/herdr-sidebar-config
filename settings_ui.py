@@ -7,9 +7,10 @@ from runtime import PLUGIN_ID, herdr_binary, run_herdr
 
 FIELDS = [("order", "Order", ["workspace", "activity"]),
           ("icons", "Icons", ["auto", "font", "text"]),
-          ("inactive_after_seconds", "Dim after (minutes)", None)]
+          ("inactive_after_seconds", "Dim after (minutes)", None),
+          ("animated_loaders", "Animated loaders", [False, True])]
 LABELS = {"auto": "Automatic", "font": "Font", "text": "Text",
-          "workspace": "Workspace order", "activity": "Active groups first"}
+          "workspace": "Workspace order", "activity": "Active groups first", False: "Off", True: "On"}
 
 
 def open_popup():
@@ -38,6 +39,8 @@ def editor(screen):
     while True:
         screen.erase()
         draw(1, "Sidebar settings", curses.A_BOLD)
+        if FIELDS[selected][0] == "animated_loaders":
+            draw(2, "On uses extra CPU while agents work.")
         for index, (key, label, options) in enumerate(FIELDS):
             value = values[key]
             display = LABELS.get(value, str(value)) if options else f"{value / 60:g}"

@@ -6,7 +6,7 @@ flow. Run setup from the same checkout and Herdr session each time.
 ## Files setup manages
 
 Open **Sidebar settings** from the command palette or press `prefix+,` (setup
-adds this shortcut only when unclaimed). Arrow keys change ordering, icons and the dimming
+adds this shortcut only when unclaimed). Arrow keys change ordering, icons, loaders and the dimming
 delay; type a number on the minutes row for an exact delay. Enter saves and
 applies once; Escape cancels. You can also open it with:
 
@@ -23,6 +23,11 @@ workspace groups forward, followed by recent lifecycle activity. Tabs and agents
 stay together in their original order; Spaces is unchanged. The activity view
 owns Herdr's single agent-view override, so do not combine it with another
 plugin's agent filter/sort. Switching back clears only this plugin's override.
+
+`animated_loaders = false` is the default. Enabling it animates working agents
+at four frames per second. Switching it off restores the static indicator and
+stops frame wakeups; ordinary inactivity dimming continues. The popup applies
+these preferences immediately without restarting Herdr or agent processes.
 
 | Item | Default location |
 | --- | --- |
