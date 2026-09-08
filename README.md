@@ -7,13 +7,11 @@ readable labels, provider icons, **optional animated loaders**, and **automatic
 dimming of inactive spaces and their agents**. This customizes the built-in
 sidebar; it does not add a file explorer or another pane. **No Herdr fork or build.**
 
-| Before — standard agent rows | After — this preset |
-| --- | --- |
-| ![Standard Herdr agent rows repeat workspace names and identify providers](docs/sidebar-before.png) | ![The same agents grouped into Runtime and Docs tabs, with readable task labels and provider icons](docs/sidebar-after.png) |
+![Herdr Agent Sidebar in action: enable Dots, switch to Orbit and Pulse, then turn animation off](docs/loaders.gif)
 
-*Same four demo agents, same session, theme, and sidebar width. Captured from
-Herdr 0.8.2 in Ghostty 1.3.1 on Linux. Titles and states are demonstration data;
-the plugin, settings, and terminal rendering are real. [Capture details](docs/demo.md).*
+*Real settings and loader demo in Herdr 0.8.2 / Ghostty 1.3.1 on Linux.
+Titles and states are demonstration data; the plugin and rendering are real.
+[Capture details](docs/demo.md).*
 
 - **Find the right agent.** One-tab workspaces stay compact; multiple tabs get a
   tree. Working groups can move to the top without separating their agents.
@@ -21,12 +19,20 @@ the plugin, settings, and terminal rendering are real. [Capture details](docs/de
   another model call.
 - **Animated loaders show who's working.** Choose Dots, Orbit, or Pulse in
   Settings. Animation is off by default; turn it off again to restore static
-  status marks and stop animation redraws. [Watch the demo below](#make-it-yours).
+  status marks and stop animation redraws.
 - **Inactive spaces and agents fade into the background.** After a workspace
   has no working agents for ten minutes, its name in **Spaces** and its heading
   and agent rows in **Agents** dim together. They brighten as soon as any agent
   in that workspace starts working. Change the delay in Settings. This is visual
   dimming—not hibernation or stopping agents.
+
+### Before and after
+
+| Before — standard agent rows | After — this preset |
+| --- | --- |
+| ![Standard Herdr agent rows repeat workspace names and identify providers](docs/sidebar-before.png) | ![The same agents grouped into Runtime and Docs tabs, with readable task labels and provider icons](docs/sidebar-after.png) |
+
+*Same four demo agents, same session, theme, and sidebar width.*
 
 ## Install
 
@@ -67,16 +73,9 @@ Setup adds the shortcut only when it is free. Use arrows to select and change;
 | Animated loaders | Off by default; On animates working agents only |
 | Loader style | Dots · Orbit · Pulse |
 
-<details>
-<summary>Watch the settings and loader demo</summary>
-
-![Real settings interaction: enable Dots, switch to Orbit and Pulse, then turn animation off](docs/loaders.gif)
-
-The recording uses the same isolated demo session. Animation adds redraws at up
+Animation adds redraws at up
 to eight frames per second. Turning it off restores the static indicator and
 stops animation wakeups. [How it works and performance caveats →](docs/architecture.md#optional-loaders)
-
-</details>
 
 ## What stays the same
 
