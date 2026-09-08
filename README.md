@@ -3,7 +3,8 @@
 **See what each agent is doing, grouped by workspace and tab.**
 
 Turn [Herdr](https://herdr.dev)'s Agents list into a compact task tree, with
-readable labels and recognizable provider icons. This customizes the built-in
+readable labels, provider icons, **optional animated loaders**, and **automatic
+dimming of inactive spaces and their agents**. This customizes the built-in
 sidebar; it does not add a file explorer or another pane. **No Herdr fork or build.**
 
 | Before — standard agent rows | After — this preset |
@@ -17,9 +18,15 @@ the plugin, settings, and terminal rendering are real. [Capture details](docs/de
 - **Find the right agent.** One-tab workspaces stay compact; multiple tabs get a
   tree. Working groups can move to the top without separating their agents.
 - **Read the task.** Uses native conversation titles and local fallbacks—not
-  another model call. Quiet workspaces dim after ten minutes by default.
-- **Choose the motion.** Keep static status marks, or enable Dots, Orbit, or
-  Pulse loaders. Change settings without restarting Herdr.
+  another model call.
+- **Animated loaders show who's working.** Choose Dots, Orbit, or Pulse in
+  Settings. Animation is off by default; turn it off again to restore static
+  status marks and stop animation redraws. [Watch the demo below](#make-it-yours).
+- **Inactive spaces and agents fade into the background.** After a workspace
+  has no working agents for ten minutes, its name in **Spaces** and its heading
+  and agent rows in **Agents** dim together. They brighten as soon as any agent
+  in that workspace starts working. Change the delay in Settings. This is visual
+  dimming—not hibernation or stopping agents.
 
 ## Install
 
@@ -56,7 +63,7 @@ Setup adds the shortcut only when it is free. Use arrows to select and change;
 | --- | --- |
 | Order | Workspace order, or active workspace groups first |
 | Icons | Automatic, font, or text |
-| Dim after | Minutes without a working agent; default 10 |
+| Dim after | Dim a space and its agent rows after no agents work there for this many minutes; default 10 |
 | Animated loaders | Off by default; On animates working agents only |
 | Loader style | Dots · Orbit · Pulse |
 
