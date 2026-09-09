@@ -74,9 +74,16 @@ Setup adds the shortcut only when it is free. Use arrows to select and change;
 | Loader style | Dots · Orbit · Pulse |
 | Branch length | Standard `├─` / `└─` (default), or Short `├` / `└` to save one column |
 
-Animation adds redraws at up
-to eight frames per second. Turning it off restores the static indicator and
-stops animation wakeups. [How it works and performance caveats →](docs/architecture.md#optional-loaders)
+Animation adds redraws at up to eight frames per second. Turning it off restores
+the static indicator and stops animation wakeups.
+[How it works and performance caveats →](docs/architecture.md#optional-loaders)
+
+### Shorter branches, same hierarchy
+
+![Switch Branch length from Standard to Short and back in Sidebar settings; agent rows move one column while keeping their indentation](docs/branches.gif)
+
+*Open `prefix+,`, choose **Branch length**, then press Enter to apply.
+Short saves one column; Standard restores it. Real interaction in an isolated demo session.*
 
 ## What stays the same
 

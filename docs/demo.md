@@ -30,6 +30,16 @@ select Pulse, then disable animation. Each choice is saved before showing the
 result in the sidebar. The capture runs at eight frames per second, with no
 speed-up. Only the relevant region of the isolated terminal is recorded.
 
+## Branch-length recording
+
+The branch-length GIF was recorded separately on 2026-09-09 with the same
+Herdr/Ghostty versions, theme, font, and sidebar width. It shows the actual
+settings popup switching Standard → Short → Standard. Each selection is saved,
+and the resulting live sidebar tokens were checked before continuing. It uses
+three reported demo agents in Runtime and Docs tabs, with terminal-title
+fallbacks and no running models. The screen recording is eight frames per second
+at its original speed; the user's live session was not used.
+
 ## Checks
 
 The installation, doctor, removal, and reinstall paths were exercised with
