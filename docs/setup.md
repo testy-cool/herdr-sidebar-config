@@ -18,6 +18,11 @@ Plugin preferences are user-owned. Updates retain them, `--text` explicitly
 selects text icons, and uninstall leaves preferences available for a later
 reinstall. Older setup backups are migrated without losing their original bytes.
 
+**Branch length** controls the tree under tabs: **Standard** uses `├─` / `└─`,
+and **Short** uses `├` / `└`, saving one column without removing indentation.
+The config key is `branch_length = "standard"` (default) or `"short"`.
+Single-tab workspaces stay branch-free with either choice.
+
 Ordering defaults to `order = "workspace"`. Choose `"activity"` to bring working
 workspace groups forward, followed by recent lifecycle activity. Tabs and agents
 stay together in their original order; Spaces is unchanged. The activity view

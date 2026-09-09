@@ -124,7 +124,7 @@ def desired_headers(panes, workspaces):
     return result
 
 
-def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset(), working_glyph="◔"):
+def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset(), working_glyph="◔", branch_length="standard"):
     headers = desired_headers(panes, workspaces)
     groups = {}
     tab_ids = {}
@@ -162,7 +162,7 @@ def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset()
             logo = logo_for(pane["agent"], icons)
             if show_tree:
                 prefix = "" if first_in_tab else BLANK * 2
-                prefix += "└─ " if last_in_tab else "├─ "
+                prefix += ("└" if last_in_tab else "├") + (" " if branch_length == "short" else "─ ")
             else:
                 prefix = "" if heading else BLANK * 2
             values["hs_logo"] = prefix + logo
@@ -208,7 +208,8 @@ def refresh(clear=False, restore_view=False):
         ordered_panes, ranks = order_groups(panes, workspaces, settings["order"])
         animated = settings["animated_loaders"] and not clear
         desired = desired_rows(ordered_panes, workspaces, tabs, icon_mode(), activity.inactive_ids,
-                               working_glyph=glyph(time.monotonic(), settings["loader_style"]) if animated else "◔")
+                               working_glyph=glyph(time.monotonic(), settings["loader_style"]) if animated else "◔",
+                               branch_length=settings["branch_length"])
         for pane in panes:
             desired[pane["pane_id"]]["hs_workspace_rank"] = ranks.get(pane["workspace_id"]) if pane.get("agent") else None
         rows = cache_rows(panes, desired, settings["loader_style"]) if animated else []

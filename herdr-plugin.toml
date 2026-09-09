@@ -13,7 +13,7 @@ id = "settings"
 title = "Sidebar settings"
 placement = "popup"
 width = 68
-height = 17
+height = 18
 command = ["sh", "run.sh", "--settings"]
 
 [[actions]]

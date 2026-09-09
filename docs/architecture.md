@@ -39,7 +39,8 @@ workspace with no detected agents at all has no anchor in Herdr's Agents panel
 and remains visible in Spaces.
 
 The outer workspace-to-tab connection has no branch. Under each tab, agents use
-`├─` and `└─`. A workspace with one tab has neither tab headings nor branches.
+`├─` and `└─` by default; `branch_length = "short"` uses `├` and `└` to save a
+column while preserving indentation. A workspace with one tab has neither tab headings nor branches.
 The tree is presentational, with native Herdr row selection and navigation.
 
 Titles prefer a user `hs_title` token, then a native exact-session name from

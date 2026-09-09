@@ -72,6 +72,7 @@ Setup adds the shortcut only when it is free. Use arrows to select and change;
 | Dim after | Dim a space and its agent rows after no agents work there for this many minutes; default 10 |
 | Animated loaders | Off by default; On animates working agents only |
 | Loader style | Dots · Orbit · Pulse |
+| Branch length | Standard `├─` / `└─` (default), or Short `├` / `└` to save one column |
 
 Animation adds redraws at up
 to eight frames per second. Turning it off restores the static indicator and
