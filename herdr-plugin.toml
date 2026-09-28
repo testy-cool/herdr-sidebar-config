@@ -3,9 +3,10 @@ name = "Herdr Sidebar Config"
 version = "0.3.0"
 min_herdr_version = "0.8.2"
 description = "Workspace, tab, and agent tree preset with compact single-tab groups, readable tasks, and provider icons."
-platforms = ["linux", "macos"]
+platforms = ["linux", "macos", "windows"]
 
 [[startup]]
+platforms = ["linux", "macos"]
 command = ["sh", "run.sh", "--restore-view"]
 
 [[panes]]
@@ -14,6 +15,7 @@ title = "Sidebar settings"
 placement = "popup"
 width = 68
 height = 18
+platforms = ["linux", "macos"]
 command = ["sh", "run.sh", "--settings"]
 
 [[actions]]
@@ -21,6 +23,7 @@ id = "settings"
 title = "Sidebar settings"
 description = "Change sidebar preferences without restarting Herdr."
 contexts = ["global"]
+platforms = ["linux", "macos"]
 command = ["sh", "run.sh", "--settings-open"]
 
 [[actions]]
@@ -28,6 +31,7 @@ id = "refresh"
 title = "Refresh agent sidebar"
 description = "Update headings, agent labels, and state indicators from the current session."
 contexts = ["global"]
+platforms = ["linux", "macos"]
 command = ["sh", "run.sh"]
 
 [[actions]]
@@ -35,60 +39,186 @@ id = "clear"
 title = "Clear sidebar display tokens"
 description = "Remove this plugin's generated display values before disabling it."
 contexts = ["global"]
+platforms = ["linux", "macos"]
 command = ["sh", "run.sh", "--clear"]
 
 [[events]]
 on = "pane.agent_detected"
+platforms = ["linux", "macos"]
 command = ["sh", "run.sh"]
 
 [[events]]
 on = "pane.closed"
+platforms = ["linux", "macos"]
 command = ["sh", "run.sh"]
 
 [[events]]
 on = "pane.exited"
+platforms = ["linux", "macos"]
 command = ["sh", "run.sh"]
 
 [[events]]
 on = "pane.moved"
+platforms = ["linux", "macos"]
 command = ["sh", "run.sh"]
 
 [[events]]
 on = "tab.created"
+platforms = ["linux", "macos"]
 command = ["sh", "run.sh"]
 
 [[events]]
 on = "tab.moved"
+platforms = ["linux", "macos"]
 command = ["sh", "run.sh"]
 
 [[events]]
 on = "tab.closed"
+platforms = ["linux", "macos"]
 command = ["sh", "run.sh"]
 
 [[events]]
 on = "workspace.renamed"
+platforms = ["linux", "macos"]
 command = ["sh", "run.sh"]
 
 [[events]]
 on = "workspace.created"
+platforms = ["linux", "macos"]
 command = ["sh", "run.sh"]
 
 [[events]]
 on = "workspace.closed"
+platforms = ["linux", "macos"]
 command = ["sh", "run.sh"]
 
 [[events]]
 on = "pane.agent_status_changed"
+platforms = ["linux", "macos"]
 command = ["sh", "run.sh"]
 
 [[events]]
 on = "pane.focused"
+platforms = ["linux", "macos"]
 command = ["sh", "run.sh"]
 
 [[events]]
 on = "tab.focused"
+platforms = ["linux", "macos"]
 command = ["sh", "run.sh"]
 
 [[events]]
 on = "tab.renamed"
+platforms = ["linux", "macos"]
 command = ["sh", "run.sh"]
+
+# Herdr rejects duplicate action and pane ids even across platforms, so
+# Windows uses the ids in host.ENTRIES. The '.\' prefix keeps cmd working
+# when NoDefaultCurrentDirectoryInExePath is set.
+
+[[startup]]
+platforms = ["windows"]
+command = ["cmd", "/c", '.\run.cmd', "--restore-view"]
+
+[[panes]]
+id = "settings-windows"
+title = "Sidebar settings"
+placement = "popup"
+width = 68
+height = 18
+platforms = ["windows"]
+command = ["cmd", "/c", '.\run.cmd', "--settings"]
+
+[[actions]]
+id = "settings-windows"
+title = "Sidebar settings"
+description = "Change sidebar preferences without restarting Herdr."
+contexts = ["global"]
+platforms = ["windows"]
+command = ["cmd", "/c", '.\run.cmd', "--settings-open"]
+
+[[actions]]
+id = "refresh-windows"
+title = "Refresh agent sidebar"
+description = "Update headings, agent labels, and state indicators from the current session."
+contexts = ["global"]
+platforms = ["windows"]
+command = ["cmd", "/c", '.\run.cmd']
+
+[[actions]]
+id = "clear-windows"
+title = "Clear sidebar display tokens"
+description = "Remove this plugin's generated display values before disabling it."
+contexts = ["global"]
+platforms = ["windows"]
+command = ["cmd", "/c", '.\run.cmd', "--clear"]
+
+[[events]]
+on = "pane.agent_detected"
+platforms = ["windows"]
+command = ["cmd", "/c", '.\run.cmd']
+
+[[events]]
+on = "pane.closed"
+platforms = ["windows"]
+command = ["cmd", "/c", '.\run.cmd']
+
+[[events]]
+on = "pane.exited"
+platforms = ["windows"]
+command = ["cmd", "/c", '.\run.cmd']
+
+[[events]]
+on = "pane.moved"
+platforms = ["windows"]
+command = ["cmd", "/c", '.\run.cmd']
+
+[[events]]
+on = "tab.created"
+platforms = ["windows"]
+command = ["cmd", "/c", '.\run.cmd']
+
+[[events]]
+on = "tab.moved"
+platforms = ["windows"]
+command = ["cmd", "/c", '.\run.cmd']
+
+[[events]]
+on = "tab.closed"
+platforms = ["windows"]
+command = ["cmd", "/c", '.\run.cmd']
+
+[[events]]
+on = "workspace.renamed"
+platforms = ["windows"]
+command = ["cmd", "/c", '.\run.cmd']
+
+[[events]]
+on = "workspace.created"
+platforms = ["windows"]
+command = ["cmd", "/c", '.\run.cmd']
+
+[[events]]
+on = "workspace.closed"
+platforms = ["windows"]
+command = ["cmd", "/c", '.\run.cmd']
+
+[[events]]
+on = "pane.agent_status_changed"
+platforms = ["windows"]
+command = ["cmd", "/c", '.\run.cmd']
+
+[[events]]
+on = "pane.focused"
+platforms = ["windows"]
+command = ["cmd", "/c", '.\run.cmd']
+
+[[events]]
+on = "tab.focused"
+platforms = ["windows"]
+command = ["cmd", "/c", '.\run.cmd']
+
+[[events]]
+on = "tab.renamed"
+platforms = ["windows"]
+command = ["cmd", "/c", '.\run.cmd']

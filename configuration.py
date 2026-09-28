@@ -5,7 +5,10 @@ import copy
 import re
 import tomllib
 
-HEADERS = re.compile(r"(?m)^[ \t]*(\[\[?[^\]\n]+\]\]?)[ \t]*(?:#.*)?$")
+import host
+from runtime import PLUGIN_ID
+
+HEADERS = re.compile(r"(?m)^[ \t]*(\[\[?[^\]\r\n]+\]\]?)[ \t]*(?:#[^\r\n]*)?\r?$")
 
 
 def settings_binding(text):
@@ -20,7 +23,7 @@ def settings_binding(text):
     if claimed(parsed.get("keys", {})):
         return text
     addition = ('\n[[keys.command]]\nkey = "prefix+comma"\ntype = "plugin_action"\n'
-                'command = "testy-cool.herdr-sidebar.settings"\ndescription = "Sidebar settings"\n')
+                f'command = "{PLUGIN_ID}.{host.entry("settings")}"\ndescription = "Sidebar settings"\n')
     result = text.rstrip() + "\n" + addition
     expected = copy.deepcopy(parsed)
     expected.setdefault("keys", {}).setdefault("command", []).append(tomllib.loads(addition)["keys"]["command"][0])
@@ -89,7 +92,7 @@ def merge_layout(text, fragment):
     # Keep unrelated tables, comments, keybindings, and terminal settings intact.
     result = text
     for start, end, name in reversed(sections(text)):
-        if name == "ui.sidebar.spaces" or name == "ui.sidebar.agents" or name.startswith("ui.sidebar.agents."):
+        if _owned(name):
             result = result[:start] + result[end:]
     ui_section = next(((a, b) for a, b, name in sections(result) if name == "ui"), None)
     if ui_section:
@@ -117,9 +120,82 @@ def merge_layout(text, fragment):
     return result
 
 
+def _owned(name):
+    return name == "ui.sidebar.spaces" or name == "ui.sidebar.agents" or name.startswith("ui.sidebar.agents.")
+
+
+def _binding(block):
+    return f'command = "{PLUGIN_ID}.' in block
+
+
+def restore_layout(text, original, fragment):
+    """Undo merge_layout(original, fragment) and settings_binding on a config
+    edited since setup.
+
+    The sidebar tables, the sort order and the settings shortcut return to
+    ``original``; every later edit elsewhere stays.
+    """
+    current, before = tomllib.loads(text), tomllib.loads(original)
+    expected = copy.deepcopy(current)
+    ui, ui_before = expected.setdefault("ui", {}), before.get("ui", {})
+    sidebar, sidebar_before = ui.setdefault("sidebar", {}), ui_before.get("sidebar", {})
+    for key in ("agents", "spaces"):
+        if key in sidebar_before:
+            sidebar[key] = sidebar_before[key]
+        else:
+            sidebar.pop(key, None)
+    if not sidebar and "sidebar" not in ui_before:
+        ui.pop("sidebar")
+    if "agent_panel_sort" in ui_before:
+        ui["agent_panel_sort"] = ui_before["agent_panel_sort"]
+    else:
+        ui.pop("agent_panel_sort", None)
+    if not ui and "ui" not in before:
+        expected.pop("ui")
+    added = not any(_binding(original[a:b]) for a, b, name in sections(original) if name == "keys.command")
+    keys = expected.get("keys", {})
+    if added and "command" in keys:
+        keys["command"] = [c for c in keys["command"] if not str(c.get("command", "")).startswith(PLUGIN_ID + ".")]
+        if not keys["command"] and "command" not in before.get("keys", {}):
+            keys.pop("command")
+            if not keys and "keys" not in before:
+                expected.pop("keys")
+
+    # The fragment's leading comment travels with it; it now heads no table.
+    preamble = fragment[:next(HEADERS.finditer(fragment)).start()].strip()
+    result = text
+    if preamble and preamble not in original:
+        result = re.sub(r"(?m)^" + re.escape(preamble) + r"\r?\n", "", result, count=1)
+    for start, end, name in reversed(sections(result)):
+        if _owned(name) or (added and name == "keys.command" and _binding(result[start:end])):
+            result = result[:start] + result[end:]
+    setting = re.compile(r'(?m)^[ \t]*agent_panel_sort[ \t]*=.*\n?')
+    old = next((setting.search(original[a:b]) for a, b, name in sections(original) if name == "ui"), None)
+    for start, end, name in sections(result):
+        if name == "ui":
+            block = setting.sub(old.group(0) if old else "", result[start:end], count=1)
+            # setup wrote this [ui] header only to hold the sort order.
+            if not any(name == "ui" for _, _, name in sections(original)) and not block.partition("\n")[2].strip():
+                block = ""
+            result = result[:start] + block + result[end:]
+            break
+    kept = "".join(original[a:b] for a, b, name in sections(original) if _owned(name))
+    if kept:
+        result = result.rstrip() + "\n\n" + kept.strip() + "\n"
+    try:
+        actual = tomllib.loads(result)
+    except tomllib.TOMLDecodeError as error:
+        raise ValueError("Cannot safely restore this TOML layout; use manual removal.") from error
+    if actual != expected:
+        raise ValueError("Config changed in a way setup cannot undo; use manual removal.")
+    return result
+
+
+GHOSTTY_MAPPING = "font-codepoint-map = U+E1A0-U+E1A9=Herdr Sidebar Logos"
+
+
 def ghostty_mapping(text):
     text = text.replace("U+E1A0-U+E1A8=Herdr Sidebar Logos", "U+E1A0-U+E1A9=Herdr Sidebar Logos")
-    mapping = "font-codepoint-map = U+E1A0-U+E1A9=Herdr Sidebar Logos"
-    if mapping in text.splitlines():
+    if GHOSTTY_MAPPING in text.splitlines():
         return text
-    return text.rstrip() + "\n\n# Herdr Sidebar provider icons\n" + mapping + "\n"
+    return text.rstrip() + "\n\n# Herdr Sidebar provider icons\n" + GHOSTTY_MAPPING + "\n"

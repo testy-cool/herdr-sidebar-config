@@ -61,6 +61,11 @@ class SidebarRowsTests(unittest.TestCase):
                 "terminal_title_stripped": "π - repo"}
         self.assertEqual(task_label(pane, {"t1": "review"}), "review")
 
+    def test_windows_cwd_names_its_own_directory(self):
+        pane = {"agent": "pi", "tab_id": "t1", "cwd": "C:\\work\\demo\\",
+                "terminal_title_stripped": "π - demo"}
+        self.assertEqual(task_label(pane, {"t1": "review"}), "review")
+
     def test_pi_title_that_is_not_the_directory_still_wins(self):
         pane = {"agent": "pi", "name": "lum-1018-build", "cwd": "/srv/repo",
                 "terminal_title_stripped": "π - fix the parser"}

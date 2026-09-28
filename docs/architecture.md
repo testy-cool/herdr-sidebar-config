@@ -6,7 +6,7 @@ decides how Herdr draws them; the bundled font supplies provider marks.
 
 ```text
 Herdr lifecycle event
-  -> run.sh -> sidebar.py
+  -> run.sh (run.cmd on Windows) -> sidebar.py
   -> herdr api snapshot
   -> workspace/tab grouping and task-title selection
   -> compare desired tokens with current tokens
@@ -15,11 +15,20 @@ Herdr lifecycle event
 ```
 
 Each hook is a short Python process. A file lock serializes overlapping hooks.
-One deadline process sleeps on a local socket until the next quiet-period
+One deadline process sleeps on a local wake channel until the next quiet-period
 deadline. Animation is off by default. A refresh reads one
 snapshot and sends at most one metadata command per changed pane. The CLI calls
 have timeouts. Frequent lifecycle events can still start many hooks; this is not
 a claim of zero overhead or a measured benchmark.
+
+The manifest declares each hook, action, and pane once per platform family.
+Herdr deduplicates action and pane ids without regard to platform, so Windows
+entries carry their own ids; `host.ENTRIES` maps each logical entry (`settings`,
+`refresh`, `clear`) to the current platform's id. If Herdr later accepts one id
+per platform ([herdrdev/herdr#4702](https://github.com/herdrdev/herdr/discussions/4702)),
+only the manifest and that map change. The settings popup draws
+through the platform layer's terminal: curses on POSIX, `msvcrt` keys and VT
+sequences on Windows.
 
 ## Grouping and titles
 
@@ -84,9 +93,33 @@ different native offsets, so the prefix arithmetic is intentional.
 it; focus and title changes do not. At 600 seconds, refresh switches the label,
 heading, tab and agent tokens to their dim variants. Native lifecycle symbols
 in Spaces retain their meaning. `deadline.py` holds a single process lock and
-waits on a private Unix datagram socket until the earliest deadline. Refreshes
-reschedule that wait; no deadlines means exit. Removal clears both pane and
-workspace tokens and cancels the pending wait.
+waits on a wake channel until the earliest deadline. A refresh only probes that
+lock: when it is held, the refresh sends a wake; when it is free, the refresh
+starts a detached scheduler, which takes the lock itself and exits if another
+scheduler won. Refreshes reschedule the wait; no deadlines means exit. Removal
+clears both pane and workspace tokens and cancels the pending wait.
+
+## Platform layer
+
+`host.py` is the only module that chooses an operating system; callers use its
+interface and never branch on the platform. `host_posix.py` and
+`host_windows.py` implement it:
+
+| Interface | POSIX | Windows |
+| --- | --- | --- |
+| `Lock` | `flock` | one-byte `msvcrt` lock, polled when blocking |
+| `connect` (Herdr API) | Unix socket at `HERDR_SOCKET_PATH` | named pipe `\\.\pipe\` + `HERDR_SOCKET_PATH`, overlapped I/O |
+| `WakeListener` / `wake` | private Unix datagram socket | UDP on 127.0.0.1; port in `deadline.port` in the state directory |
+| `spawn_detached` | new session | new process group, no window, only the log handle inherited |
+| `config_home` / `font_dir` | `$XDG_CONFIG_HOME/herdr`; `~/.local/share/fonts` or `~/Library/Fonts` | `%APPDATA%\herdr`; `%LOCALAPPDATA%\Microsoft\Windows\Fonts` |
+| `INTERPRETER_RECORD` | none; `run.sh` runs `python3` | `python-path.txt` in the plugin config directory, read by `run.cmd` |
+| `font_available` (`icons = "auto"`) | `fc-match` names the family | a per-user or machine font registration names an existing file |
+| `Fonts` (setup) | `fc-cache`; Ghostty codepoint map as a managed file | per-user font registration; Windows Terminal's fallback is only read |
+
+Every API step has the same two-second bound on both platforms. A wake carries
+no data and only makes the scheduler reread its state, so a forged datagram is
+harmless. Plugin text files and Herdr CLI output are read and written as UTF-8
+regardless of the Windows code page.
 
 ## Optional loaders
 
@@ -98,7 +131,7 @@ provider identity, selected token and task text under the shared group lock.
 Frame writes take that same lock and reread the cache, so a completed/closed
 pane cleared by a refresh cannot be repopulated by a stale frame.
 
-Frames use direct socket requests: one narrow plugin-registry lookup to stop
+Frames use direct API requests: one narrow plugin-registry lookup to stop
 when disabled, then one working-token patch per cached working pane. No CLI
 process, snapshot, title computation or transcript scan runs per frame. API
 failure ends the worker rather than retrying in a busy loop. The next lifecycle
@@ -132,7 +165,7 @@ Set `icons` in the plugin config directory's `config.toml`:
 | --- | --- |
 | `"font"` | Use the bundled U+E1A0–U+E1A8 marks; setup's Ghostty default |
 | `"text"` | Use short labels; selected by setup's `--text` |
-| `"auto"` | Default without setup: use font mode if `fc-match` finds the exact family, otherwise text |
+| `"auto"` | Default without setup: use font mode if the font is installed (`fc-match` finds the exact family; on Windows, a font registration names it), otherwise text |
 
 Font discovery does not prove the terminal has loaded the font. macOS without
 Fontconfig will use text in auto mode; setup selects explicit font mode. The

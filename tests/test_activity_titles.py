@@ -2,6 +2,7 @@ import json
 import sqlite3
 import tempfile
 import unittest
+from contextlib import closing
 from pathlib import Path
 from unittest.mock import patch
 
@@ -32,7 +33,8 @@ class ActivityTitleTests(unittest.TestCase):
     def database(self, title, name=None, mode="legacy", first="First prompt"):
         path = self.home / ".codex/state_5.sqlite"
         path.parent.mkdir(parents=True, exist_ok=True)
-        with sqlite3.connect(path) as db:
+        # Close explicitly: Windows cannot delete a database file still open.
+        with closing(sqlite3.connect(path)) as db, db:
             db.execute("CREATE TABLE threads (id TEXT PRIMARY KEY, title TEXT, name TEXT, history_mode TEXT, first_user_message TEXT)")
             db.execute("INSERT INTO threads VALUES (?,?,?,?,?)", ("session-1", title, name, mode, first))
 
@@ -81,6 +83,16 @@ class ActivityTitleTests(unittest.TestCase):
         self.write(".claude/projects/-work-project/session-1.jsonl", [
             {"type": "ai-title", "aiTitle": "Repair remote restore", "sessionId": "session-1"},
             {"type": "agent-name", "agentName": "project-3f", "sessionId": "session-1"},
+        ])
+        self.assertEqual(activity_title(self.pane("claude")), "Repair remote restore")
+
+    def test_claude_session_that_entered_a_worktree(self):
+        # Claude writes under the worktree; the pane still reports the checkout.
+        self.write(".claude/projects/-work-project--claude-worktrees-fix-1/session-1.jsonl", [
+            {"type": "ai-title", "aiTitle": "Repair remote restore", "sessionId": "session-1"},
+        ])
+        self.write(".claude/projects/-work-project--claude-worktrees-fix-2/session-2.jsonl", [
+            {"type": "ai-title", "aiTitle": "Wrong session", "sessionId": "session-2"},
         ])
         self.assertEqual(activity_title(self.pane("claude")), "Repair remote restore")
 

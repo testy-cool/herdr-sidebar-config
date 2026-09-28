@@ -39,7 +39,8 @@ Titles and states are demonstration data; the plugin and rendering are real.
 ## Install
 
 Requires **Herdr 0.8.2+**, **Python 3.11+**, and Git. Icon setup targets **Ghostty
-on Linux or macOS**. Linux/Ghostty is live-tested; macOS is not yet live-tested.
+on Linux or macOS** and **Windows Terminal on Windows**. Linux/Ghostty is
+live-tested; macOS is not yet live-tested.
 
 Run inside a Herdr terminal pane:
 
@@ -56,6 +57,13 @@ your still-running Herdr session. A new tab alone may retain the old font cache.
 **Another terminal, or no font changes?** Use `python3 setup_sidebar.py install --text`
 instead. Providers use short text labels; no Ghostty restart is needed for a font.
 To inspect changes first, add `--dry-run` to the install command.
+
+**Windows:** run the same commands with `python` (or `py -3`) in place of
+`python3`. Setup installs the font for your user only and records the Python it
+ran with for the plugin's hooks. It does not edit Windows Terminal's settings:
+append `, Herdr Sidebar Logos` to each profile's **Font face** (Settings →
+Profile → Appearance), then open a new Windows Terminal window. Doctor reports
+whether that fallback is present. [Windows details →](docs/setup.md#windows)
 
 Setup backs up the files it changes and preserves unrelated Herdr settings.
 It replaces the agent-row layout and sets workspace sorting. Keep this checkout:
@@ -115,8 +123,9 @@ python3 setup_sidebar.py uninstall --dry-run
 python3 setup_sidebar.py uninstall
 ```
 
-Removal keeps your checkout and preferences. Setup refuses to overwrite managed
-files edited since installation. [Keeping custom edits and troubleshooting →](docs/setup.md)
+Removal keeps your checkout and preferences. Later edits to your Herdr config,
+such as a new theme, survive repeat installs and removal; setup refuses to
+overwrite other managed files edited since installation. [Keeping custom edits and troubleshooting →](docs/setup.md)
 
 Contributing? Start with [AGENTS.md](AGENTS.md) and the [architecture guide](docs/architecture.md).
 

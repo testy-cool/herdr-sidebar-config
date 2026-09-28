@@ -1,5 +1,4 @@
 """Publish compact task rows from native Herdr facts, only when values change."""
-import fcntl
 import argparse
 import json
 import os
@@ -8,6 +7,7 @@ import sys
 import time
 import tomllib
 from pathlib import Path
+from host import Lock, entry
 from inactivity import update_inactivity
 from activity_titles import activity_title
 from preferences import load as load_preferences
@@ -90,7 +90,8 @@ def _names_own_directory(text, pane):
     cwd = pane.get("cwd") or pane.get("foreground_cwd") or ""
     if not cwd:
         return False
-    base = cwd.rstrip("/").rsplit("/", 1)[-1]
+    # Windows snapshot paths use backslashes.
+    base = re.split(r"[/\\]", cwd.rstrip("/\\"))[-1]
     if not base:
         return False
     match = BRANDED_DIRECTORY.match(text)
@@ -218,7 +219,7 @@ def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset()
 
 def read_state(path):
     try:
-        return json.loads(path.read_text())
+        return json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return {}
 
@@ -226,8 +227,7 @@ def read_state(path):
 def refresh(clear=False, restore_view=False):
     state = Path(os.environ["HERDR_PLUGIN_STATE_DIR"])
     state.mkdir(parents=True, exist_ok=True)
-    with (state / "group-headers.lock").open("w") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX)
+    with Lock(state / "group-headers.lock"):
         herdr = herdr_binary()
         snapshot = run_herdr(herdr, "api", "snapshot")["result"]["snapshot"]
         agents = {a["pane_id"]: a for a in snapshot["agents"]}
@@ -251,7 +251,7 @@ def refresh(clear=False, restore_view=False):
         saved = dict(activity.state, next_deadline=None if clear else activity.next_deadline,
                      animation_rows=rows)
         temporary = state / "activity.tmp"
-        temporary.write_text(json.dumps(saved))
+        temporary.write_text(json.dumps(saved), encoding="utf-8")
         temporary.replace(state / "activity.json")
         source = "plugin:" + os.environ.get("HERDR_PLUGIN_ID", PLUGIN_ID)
         for pane in panes:
@@ -280,7 +280,7 @@ def refresh(clear=False, restore_view=False):
         view_path = state / "view.json"
         if clear or restore_view or read_state(view_path).get("order") != mode:
             apply_view(mode)
-            view_path.write_text(json.dumps({"order": mode}))
+            view_path.write_text(json.dumps({"order": mode}), encoding="utf-8")
         pending = not clear and (activity.next_deadline is not None or bool(rows))
         if pending or (state / "deadline.lock").exists():
             from deadline import ensure_timer
@@ -299,7 +299,7 @@ def main():
     parser.add_argument("--restore-view", action="store_true", help="restore saved ordering on startup")
     args = parser.parse_args()
     if not os.environ.get("HERDR_PLUGIN_STATE_DIR"):
-        raise RuntimeError("Run through Herdr: herdr plugin action invoke refresh --plugin " + PLUGIN_ID)
+        raise RuntimeError(f"Run through Herdr: herdr plugin action invoke {entry('refresh')} --plugin {PLUGIN_ID}")
     if args.settings or args.settings_open:
         import settings_ui
         settings_ui.open_popup() if args.settings_open else settings_ui.main()
@@ -308,6 +308,9 @@ def main():
 
 
 if __name__ == "__main__":
+    # Hook output is UTF-8 whatever the Windows code page is.
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
     try:
         main()
     except (RuntimeError, OSError, ValueError) as error:

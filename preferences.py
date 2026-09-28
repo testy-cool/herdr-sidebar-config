@@ -35,7 +35,7 @@ def validate(values):
 
 def load(path=None):
     path = path or settings_path()
-    return validate(tomllib.loads(path.read_text()) if path.exists() else {})
+    return validate(tomllib.loads(path.read_text(encoding="utf-8")) if path.exists() else {})
 
 
 def patch(text, changes):
@@ -67,7 +67,7 @@ def patch(text, changes):
 
 
 def save(path, original, changes):
-    current = path.read_text() if path.exists() else ""
+    current = path.read_text(encoding="utf-8") if path.exists() else ""
     if current != original:
         raise ValueError("Settings changed elsewhere. Close and reopen this popup.")
     result = patch(original, changes)
@@ -76,7 +76,7 @@ def save(path, original, changes):
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = None
     try:
-        with tempfile.NamedTemporaryFile(mode="w", dir=path.parent, delete=False) as stream:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent, delete=False) as stream:
             temporary = Path(stream.name)
             stream.write(result)
         temporary.chmod(path.stat().st_mode & 0o777 if path.exists() else 0o600)

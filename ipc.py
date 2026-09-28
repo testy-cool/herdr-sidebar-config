@@ -1,7 +1,8 @@
-"""Bounded, direct Herdr socket requests; no subprocess per display update."""
+"""Bounded, direct Herdr API requests; no subprocess per display update."""
 import json
 import os
-import socket
+
+from host import connect
 
 
 def call(method, params):
@@ -9,9 +10,7 @@ def call(method, params):
     if not path:
         raise RuntimeError("Herdr did not provide this session's socket path.")
     request = {"id": "sidebar", "method": method, "params": params}
-    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
-        client.settimeout(2)
-        client.connect(path)
+    with connect(path, timeout=2) as client:
         client.sendall((json.dumps(request) + "\n").encode())
         response = bytearray()
         while b"\n" not in response:

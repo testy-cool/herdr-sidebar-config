@@ -6,6 +6,7 @@ rows = [
   [{ token = "$hs_terminals", dim = true, fg = "#A8ADB9" }],
   [{ token = "$hs_tab", fg = "#A8ADB9", dim = false }, { token = "$hs_tab_dim", fg = "#A8ADB9", dim = true }],
   [
+    { token = "$hs_logo_focus", fg = "#F08080", dim = false },
     { token = "$hs_logo", fg = "#A8ADB9", dim = false },
     { token = "$hs_logo_dim", fg = "#A8ADB9", dim = true },
     { token = "$hs_working", fg = "#A8ADB9", dim = false },
@@ -28,6 +29,7 @@ agy = [
   [{ token = "$hs_terminals", dim = true, fg = "#A8ADB9" }],
   [{ token = "$hs_tab", fg = "#A8ADB9", dim = false }, { token = "$hs_tab_dim", fg = "#A8ADB9", dim = true }],
   [
+    { token = "$hs_logo_focus", fg = "#F08080", dim = false },
     { token = "$hs_logo", fg = "#6EA8FE", dim = false },
     { token = "$hs_logo_dim", fg = "#A8ADB9", dim = true },
     { token = "$hs_working", fg = "#6EA8FE", dim = false },
@@ -48,6 +50,7 @@ claude = [
   [{ token = "$hs_terminals", dim = true, fg = "#A8ADB9" }],
   [{ token = "$hs_tab", fg = "#A8ADB9", dim = false }, { token = "$hs_tab_dim", fg = "#A8ADB9", dim = true }],
   [
+    { token = "$hs_logo_focus", fg = "#F08080", dim = false },
     { token = "$hs_logo", fg = "#E68A67", dim = false },
     { token = "$hs_logo_dim", fg = "#A8ADB9", dim = true },
     { token = "$hs_working", fg = "#E68A67", dim = false },
@@ -68,6 +71,7 @@ codex = [
   [{ token = "$hs_terminals", dim = true, fg = "#A8ADB9" }],
   [{ token = "$hs_tab", fg = "#A8ADB9", dim = false }, { token = "$hs_tab_dim", fg = "#A8ADB9", dim = true }],
   [
+    { token = "$hs_logo_focus", fg = "#F08080", dim = false },
     { token = "$hs_logo", fg = "#A78BFA", dim = false },
     { token = "$hs_logo_dim", fg = "#A8ADB9", dim = true },
     { token = "$hs_working", fg = "#A78BFA", dim = false },

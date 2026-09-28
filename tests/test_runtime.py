@@ -12,7 +12,7 @@ class RuntimeTests(unittest.TestCase):
     def test_text_mode_needs_no_font_and_auto_degrades(self):
         with tempfile.TemporaryDirectory() as directory:
             with patch.dict(os.environ, {"HERDR_PLUGIN_CONFIG_DIR": directory}):
-                with patch("runtime.shutil.which", return_value=None):
+                with patch("host.font_available", return_value=False):
                     self.assertEqual(icon_mode(), "text")
                 Path(directory, "config.toml").write_text('icons = "text"\n')
                 self.assertEqual(icon_mode(), "text")
