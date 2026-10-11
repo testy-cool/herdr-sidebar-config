@@ -5,6 +5,7 @@ summary metadata; Pi uses the latest session_info name. Only exact session IDs
 or an explicitly reported Pi session file are consulted. Missing metadata is
 normal: callers should retain their existing task/terminal-title fallback.
 """
+import glob
 import json
 import os
 import re
@@ -110,7 +111,15 @@ def _claude(pane, session_id):
     if not isinstance(cwd, str) or not cwd:
         return None
     home = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
-    project = home / "projects" / re.sub(r"[^A-Za-z0-9-]", "-", cwd)
+    encoded = re.sub(r"[^A-Za-z0-9-]", "-", cwd.rstrip("/\\"))
+    project = home / "projects" / encoded
+    if not (project / (session_id + ".jsonl")).exists():
+        # A session that entered a Claude worktree keeps writing under the
+        # worktree's directory while the pane still reports the checkout.
+        moved = next((home / "projects").glob(
+            glob.escape(encoded) + "--claude-worktrees-*/" + session_id + ".jsonl"), None)
+        if moved:
+            project = moved.parent
     names = {}
     try:
         for record in _records(project / (session_id + ".jsonl")):

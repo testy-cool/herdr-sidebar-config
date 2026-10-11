@@ -2,8 +2,11 @@ import tempfile
 import tomllib
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from configuration import dimmable_spaces, ghostty_mapping, merge_layout
+import host
+
+from configuration import dimmable_spaces, ghostty_mapping, merge_layout, restore_layout, settings_binding
 from setup_sidebar import digest, edited_files
 
 FRAGMENT = (Path(__file__).resolve().parents[1] / "sidebar-layout.toml").read_text()
@@ -83,6 +86,112 @@ command = "my-action"
         result = ghostty_mapping(original)
         self.assertTrue(result.startswith(original.rstrip()))
         self.assertEqual(ghostty_mapping(result), result)
+
+    def test_font_mapping_upgrades_to_include_pi(self):
+        original = "font-size = 16\nfont-codepoint-map = U+E1A0-U+E1AB=Herdr Sidebar Logos\n"
+        expected = original.replace("U+E1AB", "U+E1AC")
+        self.assertEqual(ghostty_mapping(original), expected)
+
+    def test_font_mapping_does_not_downgrade_pi(self):
+        original = "font-size = 16\nfont-codepoint-map = U+E1A0-U+E1AC=Herdr Sidebar Logos\n"
+        self.assertEqual(ghostty_mapping(original), original)
+
+    def test_restore_keeps_later_edits_and_undoes_only_the_sidebar(self):
+        original = '''# personal theme
+[theme]
+name = "tokyo-night"
+[ui]
+sidebar_width = 42
+agent_panel_sort = "priority"
+[ui.sidebar.agents]
+rows = [["agent"]]
+[[keys.command]]
+key = "prefix+y"
+command = "my-action"
+'''
+        installed = settings_binding(merge_layout(original, FRAGMENT))
+        edited = installed.replace('"tokyo-night"', '"dracula"') + '\n[terminal]\nscrollback = 5000\n'
+        result = restore_layout(edited, original, FRAGMENT)
+        expected = tomllib.loads(original.replace('"tokyo-night"', '"dracula"'))
+        expected["terminal"] = {"scrollback": 5000}
+        self.assertEqual(tomllib.loads(result), expected)
+        self.assertIn("# personal theme", result)
+        self.assertNotIn("hs_", result)
+
+    def test_restore_removes_tables_setup_created(self):
+        installed = settings_binding(merge_layout("", FRAGMENT))
+        result = restore_layout(installed + '\n[theme]\nname = "dracula"\n', "", FRAGMENT)
+        self.assertEqual(tomllib.loads(result), {"theme": {"name": "dracula"}})
+
+    def test_restore_leaves_the_users_own_shortcut(self):
+        original = '[[keys.command]]\nkey = "prefix+comma"\ncommand = "mine"\n'
+        installed = settings_binding(merge_layout(original, FRAGMENT))
+        result = restore_layout(installed + '\n[theme]\nname = "dracula"\n', original, FRAGMENT)
+        self.assertEqual(tomllib.loads(result)["keys"], tomllib.loads(original)["keys"])
+
+    def test_restore_preserves_other_plugin_actions_before_and_after_install(self):
+        original = ('[[keys.command]]\nkey = "prefix+r"\ntype = "plugin_action"\n'
+                    'command = "testy-cool.herdr-sidebar.refresh"\n')
+        later = ('\n[[keys.command]]\nkey = "prefix+x"\ntype = "plugin_action"\n'
+                 'command = "testy-cool.herdr-sidebar.clear-windows"\n')
+        for before in ("", original):
+            with self.subTest(original=before):
+                installed = settings_binding(merge_layout(before, FRAGMENT))
+                restored = restore_layout(installed + later, before, FRAGMENT)
+                self.assertEqual(tomllib.loads(restored), tomllib.loads(before + later))
+
+    def test_restore_preserves_a_settings_shortcut_the_user_modified(self):
+        installed = settings_binding(merge_layout("", FRAGMENT))
+        for old, new in [('key = "prefix+comma"', 'key = "prefix+s"'),
+                         ('description = "Sidebar settings"', 'description = "My settings"')]:
+            with self.subTest(change=new):
+                edited = installed.replace(old, new)
+                restored = restore_layout(edited, "", FRAGMENT)
+                self.assertEqual(tomllib.loads(restored).get("keys"), tomllib.loads(edited)["keys"])
+
+    def test_restore_matches_parsed_shortcut_on_both_platforms(self):
+        later = ('\n[[keys.command]]\nkey = "prefix+x"\ncommand = "mine"\n'
+                 '# command = "testy-cool.herdr-sidebar.settings"\n')
+        for platform in ("linux", "windows"):
+            with self.subTest(platform=platform), patch.object(host, "PLATFORM", platform):
+                installed = settings_binding(merge_layout("", FRAGMENT))
+                # Equivalent TOML syntax is still the setup-owned binding.
+                edited = (installed + later).replace('key = "prefix+comma"', "key='prefix+comma'")
+                restored = restore_layout(edited, "", FRAGMENT)
+                self.assertEqual(tomllib.loads(restored), tomllib.loads(later))
+
+    def test_restore_handles_crlf(self):
+        original = '[theme]\r\nname = "tokyo-night"\r\n'
+        installed = settings_binding(merge_layout(original, FRAGMENT)).replace("\r\n", "\n").replace("\n", "\r\n")
+        result = restore_layout(installed.replace("tokyo-night", "dracula"), original, FRAGMENT)
+        self.assertEqual(tomllib.loads(result), {"theme": {"name": "dracula"}})
+
+    def test_restore_after_the_user_deleted_the_shortcut(self):
+        installed = settings_binding(merge_layout('[theme]\nname = "a"\n', FRAGMENT))
+        # settings_binding appends the shortcut last.
+        edited = installed[:installed.index("[[keys.command]]")]
+        self.assertEqual(tomllib.loads(restore_layout(edited, '[theme]\nname = "a"\n', FRAGMENT)),
+                         {"theme": {"name": "a"}})
+
+    def test_restore_leaves_no_bare_ui_header(self):
+        original = '[ui.sidebar]\nwidth = 3\n'
+        installed = settings_binding(merge_layout(original, FRAGMENT))
+        result = restore_layout(installed + '[theme]\nname = "b"\n', original, FRAGMENT)
+        self.assertEqual(tomllib.loads(result), {"ui": {"sidebar": {"width": 3}}, "theme": {"name": "b"}})
+        self.assertNotIn("[ui]\n", result)
+
+    def test_restore_brings_back_a_custom_sidebar_and_sort(self):
+        original = '[ui]\nagent_panel_sort = "priority"\n[ui.sidebar.agents]\nrows = [["agent"]]\n'
+        installed = settings_binding(merge_layout(original, FRAGMENT))
+        result = restore_layout(installed + '\n[theme]\nname = "b"\n', original, FRAGMENT)
+        expected = tomllib.loads(original)
+        expected["theme"] = {"name": "b"}
+        self.assertEqual(tomllib.loads(result), expected)
+
+    def test_merge_over_later_edits_keeps_them(self):
+        installed = settings_binding(merge_layout('[theme]\nname = "tokyo-night"\n', FRAGMENT))
+        edited = installed.replace('"tokyo-night"', '"dracula"')
+        self.assertEqual(tomllib.loads(merge_layout(edited, FRAGMENT))["theme"], {"name": "dracula"})
 
     def test_removal_detects_later_edits_and_missing_files(self):
         with tempfile.TemporaryDirectory() as directory:

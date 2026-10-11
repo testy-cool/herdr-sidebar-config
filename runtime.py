@@ -8,6 +8,8 @@ import subprocess
 import tomllib
 from pathlib import Path
 
+import host
+
 PLUGIN_ID = "testy-cool.herdr-sidebar"
 FONT_FAMILY = "Herdr Sidebar Logos"
 PUA_LOGOS = {name: chr(0xE1A0 + index) for index, name in enumerate(
@@ -24,7 +26,8 @@ def herdr_binary():
 
 def run_herdr(herdr, *args):
     try:
-        result = subprocess.run([herdr, *args], capture_output=True, text=True, timeout=15)
+        result = subprocess.run([herdr, *args], capture_output=True, encoding="utf-8",
+                                errors="replace", timeout=15)
     except (OSError, subprocess.TimeoutExpired) as error:
         raise RuntimeError(f"Could not run Herdr: {error}") from error
     if result.returncode:
@@ -35,19 +38,13 @@ def run_herdr(herdr, *args):
 def icon_mode():
     config_dir = os.environ.get("HERDR_PLUGIN_CONFIG_DIR")
     path = Path(config_dir) / "config.toml" if config_dir else None
-    config = tomllib.loads(path.read_text()) if path and path.exists() else {}
+    config = tomllib.loads(path.read_text(encoding="utf-8")) if path and path.exists() else {}
     mode = config.get("icons", "auto")
     if mode not in {"auto", "font", "text"}:
         raise RuntimeError("icons must be 'auto', 'font', or 'text' in the plugin config.toml")
     if mode != "auto":
         return mode
-    command = shutil.which("fc-match")
-    if command:
-        result = subprocess.run([command, "--format", "%{family}", FONT_FAMILY],
-                                capture_output=True, text=True, timeout=5)
-        if result.returncode == 0 and FONT_FAMILY in result.stdout.split(","):
-            return "font"
-    return "text"
+    return "font" if host.font_available(FONT_FAMILY) else "text"
 
 
 def logo_for(agent, mode):

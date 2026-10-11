@@ -1,42 +1,25 @@
 """One scheduler: quiet deadlines plus optional, working-only animation frames."""
-import fcntl
 import os
-import hashlib
 from pathlib import Path
-import socket
-import subprocess
 import sys
-import tempfile
 import time
 
-
-def address(state):
-    key = hashlib.sha256(str(state.resolve()).encode()).hexdigest()[:20]
-    return str(Path(tempfile.gettempdir()) / f"hs-{os.getuid()}-{key}.sock")
+from host import Lock, WakeListener, spawn_detached, wake
 
 
 def ensure_timer(state, start=True):
-    lock = (state / "deadline.lock").open("a")
+    # Probe only: the scheduler takes the lock itself, so no locked handle has
+    # to cross a process boundary. A probe racing a starting scheduler is
+    # harmless; the extra scheduler fails to lock and exits.
+    timer = Lock(state / "deadline.lock")
     try:
-        try:
-            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
-            with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as client:
-                try:
-                    client.setblocking(False)
-                    client.sendto(b"refresh", address(state))
-                except OSError:
-                    pass  # A starting timer reads the newest state after bind.
+        if not timer.acquire(blocking=False):
+            wake(state)
             return
-        if not start:
-            return
-        with (state / "deadline.log").open("a") as log:
-            subprocess.Popen([sys.executable, str(Path(__file__).resolve()), str(lock.fileno())],
-                             pass_fds=(lock.fileno(),), stdin=subprocess.DEVNULL,
-                             stdout=log, stderr=log, start_new_session=True)
     finally:
-        # The child inherits the same locked file description.
-        lock.close()
+        timer.close()
+    if start:
+        spawn_detached([sys.executable, str(Path(__file__).resolve())], state / "deadline.log")
 
 
 def run():
@@ -45,27 +28,26 @@ def run():
     from ipc import call
     from animation import INTERVAL, publish_frame
     state = Path(os.environ["HERDR_PLUGIN_STATE_DIR"])
-    with os.fdopen(int(sys.argv[1]), "a") as timer_lock, socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as wake:
-        path = Path(address(state))
-        path.unlink(missing_ok=True)
-        wake.bind(str(path))
-        path.chmod(0o600)
+    timer = Lock(state / "deadline.lock")
+    if not timer.acquire(blocking=False):
+        return  # Another scheduler already owns the deadlines.
+    # A wake sent before this bind is lost, but the loop below reads the
+    # newest state first.
+    with WakeListener(state) as listener:
         next_frame = time.monotonic() + INTERVAL
         while True:
-            with (state / "group-headers.lock").open("a") as lock:
-                fcntl.flock(lock, fcntl.LOCK_EX)
+            with Lock(state / "group-headers.lock"):
                 cached = read_state(state / "activity.json")
                 deadline = cached.get("next_deadline")
                 rows = cached.get("animation_rows") or []
                 if deadline is None and not rows:
-                    path.unlink(missing_ok=True)
-                    fcntl.flock(timer_lock, fcntl.LOCK_UN)
+                    listener.close()
+                    timer.release()
                     return
                 # The same lock protects lifecycle refreshes and frame writes.
                 # Once a refresh clears a row, no old frame can put it back.
                 if rows and time.monotonic() >= next_frame:
                     if not publish_frame(rows, time.monotonic()):
-                        path.unlink(missing_ok=True)
                         return
                     next_frame = time.monotonic() + INTERVAL
                 elif not rows:
@@ -77,21 +59,17 @@ def run():
                     waits.append(next_frame - time.monotonic())
                 delay = max(0, min(waits))
             if delay > 0:
-                wake.settimeout(delay)
-                try:
-                    wake.recv(128)
-                except socket.timeout:
-                    pass
+                listener.wait(delay)
                 continue
             # Disabled plugins must not repopulate metadata after uninstall.
             plugins = call("plugin.list", {"plugin_id": PLUGIN_ID})["plugins"]
             if not any(p["plugin_id"] == PLUGIN_ID and p["enabled"] for p in plugins):
-                path.unlink(missing_ok=True)
                 return
             refresh()
 
 
 if __name__ == "__main__":
+    sys.stderr.reconfigure(encoding="utf-8")
     try:
         run()
     except (OSError, RuntimeError, ValueError) as error:

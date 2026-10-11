@@ -24,7 +24,8 @@ class ContextRuntimeTests(unittest.TestCase):
         env = patch.dict(os.environ, {'HERDR_PLUGIN_STATE_DIR': str(self.root / 'state'),
                          'HERDR_PLUGIN_CONFIG_DIR': str(self.root / 'config'),
                          'HERDR_SIDEBAR_HIBERNATE_STATE': str(self.root / 'hibernate.json'),
-                         'CODEX_HOME': str(self.root / 'codex')}, clear=True)
+                         'CODEX_HOME': str(self.root / 'codex'),
+                         'USERPROFILE': str(self.root), 'HOME': str(self.root)}, clear=True)
         env.start()
         self.addCleanup(env.stop)
         self.snapshot = {

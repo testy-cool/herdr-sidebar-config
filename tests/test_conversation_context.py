@@ -1,3 +1,4 @@
+from contextlib import closing
 import json
 import os
 from pathlib import Path
@@ -58,9 +59,10 @@ class ConversationContextTests(unittest.TestCase):
         ])
         db = self.home / '.codex/state_5.sqlite'
         db.parent.mkdir()
-        with sqlite3.connect(db) as connection:
+        with closing(sqlite3.connect(db)) as connection:
             connection.execute('CREATE TABLE threads (id TEXT, rollout_path TEXT)')
             connection.execute('INSERT INTO threads VALUES (?,?)', ('session-1', str(path)))
+            connection.commit()
         self.assertEqual(latest_request(self.pane), 'Repair export handling')
         path.write_text(path.read_text().replace('session-1', 'session-2'))
         self.assertIsNone(latest_request(self.pane))
@@ -183,9 +185,11 @@ class ConversationContextTests(unittest.TestCase):
 
     def test_context_file_is_private_atomic_and_unchanged_refresh_does_not_write(self):
         path = self.home / 'state/context.json'
-        value = {'version': 1, 'records': {}}
+        value = {'version': 1, 'records': {'title': '中文会话'}}
         save_json(path, value)
-        self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+        # Windows inherits user-directory ACLs; chmod has no POSIX mode bits.
+        if os.name != "nt":
+            self.assertEqual(path.stat().st_mode & 0o777, 0o600)
         mtime = path.stat().st_mtime_ns
         save_json(path, value)
         self.assertEqual(path.stat().st_mtime_ns, mtime)

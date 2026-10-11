@@ -16,9 +16,9 @@ rename a tab to `main` to opt it in again.
 ## Read sleeping work
 
 Select its tab in Spaces and use **Show saved conversation context** (plugin
-action `context`). The popup shows full titles, latest meaningful requests,
+action `context`, or `context-windows` on Windows). The popup shows full titles, latest meaningful requests,
 native lifecycle status or validated Hibernate sleeping state, source and recorded
-time. Requests wrap and scroll. Esc closes without resuming. It does not infer
+time. Requests wrap; Up/Down scroll and PgUp/PgDn move a page. Esc closes without resuming. It does not infer
 results or next steps. Sleeping context stays in this popup; Spaces has no extra
 sleeping-agent row. Sleeping panes remain terminals without an Agents-panel anchor.
 
@@ -31,7 +31,8 @@ session-ID file. Transcript tails are bounded to 512 KiB. Images, tools, injecte
 instructions and vague follow-ups do not become titles. Unsupported agents keep
 the existing terminal-title fallback.
 
-`context.json` is an atomic, mode-0600 file in the plugin state directory. It
+`context.json` is an atomic UTF-8 file in the per-user plugin state directory
+(mode 0600 on POSIX; inherited directory permissions on Windows). It
 stores short title/request facts, session identity, pane/tab/workspace links, cwd
 and recorded time, without full conversations or Hibernate resume commands.
 Closed panes are pruned; reused panes cannot inherit another session's context.

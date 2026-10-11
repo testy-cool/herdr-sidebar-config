@@ -1,5 +1,5 @@
 """Read-only, dependency-free saved-context popup; never wake an agent."""
-import curses
+import host
 from datetime import datetime
 import os
 from pathlib import Path
@@ -18,7 +18,7 @@ def open_popup():
     if not tab_id:
         raise RuntimeError("Select a tab before opening saved context.")
     run_herdr(binary, "plugin", "pane", "open", "--plugin", PLUGIN_ID,
-              "--entrypoint", "context", "--cwd", str(Path(__file__).resolve().parent),
+              "--entrypoint", host.entry("context"), "--cwd", str(Path(__file__).resolve().parent),
               "--env", "HERDR_CONTEXT_TAB_ID=" + tab_id)
 
 
@@ -45,9 +45,7 @@ def lines_for_tab(snapshot, context, tab_id):
     return [CONTROL.sub("", line) for line in lines]
 
 
-def viewer(screen):
-    curses.curs_set(0)
-    screen.keypad(True)
+def viewer(terminal):
     tab_id = os.environ.get("HERDR_CONTEXT_TAB_ID")
     if not tab_id:
         raise RuntimeError("Open context from the sidebar action.")
@@ -56,28 +54,29 @@ def viewer(screen):
     lines = lines_for_tab(snapshot, context, tab_id)
     offset = 0
     while True:
-        height, width = screen.getmaxyx()
+        height, width = terminal.size()
         wrapped = [part for line in lines for part in (textwrap.wrap(line, max(1, width - 4)) or [""])]
         room = max(1, height - 4)
         offset = min(offset, max(0, len(wrapped) - room))
-        screen.erase()
+        terminal.clear()
         if height > 2 and width > 4:
             for index, line in enumerate(wrapped[offset:offset + room]):
-                screen.addnstr(index + 1, 2, line, width - 4)
-            screen.addnstr(height - 2, 2, "Up/Down scroll   Esc close", width - 4)
-        screen.refresh()
-        key = screen.get_wch()
-        if key in ("q", "\x1b"):
+                terminal.draw(index + 1, 2, line[:width - 4])
+            terminal.draw(height - 2, 2, "Up/Down scroll   PgUp/PgDn page   Esc close"[:width - 4])
+        terminal.refresh()
+        key = terminal.key()
+        if key in ("q", "escape"):
             return
-        if key == curses.KEY_DOWN:
+        if key == "down":
             offset += 1
-        elif key == curses.KEY_UP:
+        elif key == "up":
             offset = max(0, offset - 1)
-        elif key == curses.KEY_NPAGE:
+        elif key == "page_down":
             offset += room
-        elif key == curses.KEY_PPAGE:
+        elif key == "page_up":
             offset = max(0, offset - room)
 
 
 def main():
-    curses.wrapper(viewer)
+    with host.terminal() as terminal:
+        viewer(terminal)

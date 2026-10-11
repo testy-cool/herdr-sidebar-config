@@ -41,7 +41,7 @@ def slug(text):
 
 def anchors(path):
     found, fenced = set(), False
-    for line in path.read_text().splitlines():
+    for line in path.read_text(encoding="utf-8").splitlines():
         if FENCE.match(line):
             fenced = not fenced
         elif not fenced:
@@ -54,7 +54,7 @@ def anchors(path):
 def prose_links(path):
     """Yield (target, anchor) for links outside fenced code blocks."""
     fenced = False
-    for line in path.read_text().splitlines():
+    for line in path.read_text(encoding="utf-8").splitlines():
         if FENCE.match(line):
             fenced = not fenced
             continue
@@ -92,7 +92,7 @@ def check_links():
 def check_placeholders():
     failures = []
     for path in sorted(KNOWLEDGE.rglob("*.md")):
-        for number, line in enumerate(path.read_text().splitlines(), 1):
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             match = PLACEHOLDER.search(line)
             if match:
                 failures.append(f"{path.relative_to(ROOT)}:{number}: placeholder {match.group(0)!r}")
@@ -104,7 +104,7 @@ def check_doc_tokens():
     known = {entry["name"] for entry in registry()["tokens"]}
     failures = []
     for path in sorted(KNOWLEDGE.rglob("*.md")):
-        for name in sorted(set(TOKEN.findall(path.read_text())) - known):
+        for name in sorted(set(TOKEN.findall(path.read_text(encoding="utf-8"))) - known):
             failures.append(f"{path.relative_to(ROOT)}: names unknown token {name}")
     return failures
 
@@ -112,19 +112,19 @@ def check_doc_tokens():
 def source_tokens():
     names = set()
     for name in ("sidebar.py", "ordering.py", "animation.py", "inactivity.py"):
-        names.update(TOKEN.findall((ROOT / name).read_text()))
+        names.update(TOKEN.findall((ROOT / name).read_text(encoding="utf-8")))
     return names - {"hs_"}
 
 
 def source_env():
     names = set()
     for path in sorted(ROOT.glob("*.py")):
-        names.update(ENV.findall(path.read_text()))
+        names.update(ENV.findall(path.read_text(encoding="utf-8")))
     return names
 
 
 def registry():
-    return json.loads(REGISTRY.read_text())
+    return json.loads(REGISTRY.read_text(encoding="utf-8"))
 
 
 def check_registry():
@@ -157,7 +157,7 @@ def check_registry():
 
     import sidebar
 
-    layout = (ROOT / "sidebar-layout.toml").read_text()
+    layout = (ROOT / "sidebar-layout.toml").read_text(encoding="utf-8")
     layout_tokens = set(TOKEN.findall(layout))
     literals = source_tokens()
     states = {f"hs_{state}" for state in sidebar.STATES}
@@ -189,7 +189,7 @@ def check_registry():
             failures.append(f"registry: text label for {agent} differs from runtime.TEXT_LOGOS")
 
     import tomllib
-    codepoints = tomllib.loads((ROOT / "font" / "codepoints.toml").read_text())["glyphs"]
+    codepoints = tomllib.loads((ROOT / "font" / "codepoints.toml").read_text(encoding="utf-8"))["glyphs"]
     for agent, entry in providers.items():
         if codepoints.get(agent) != entry.get("codepoint"):
             failures.append(f"registry: codepoint for {agent} differs from font/codepoints.toml")
@@ -204,17 +204,17 @@ def check_registry():
     for group, directory, pattern in (("modules", ROOT, "*.py"), ("tools", ROOT / "tools", "*.py"),
                                       ("tests", ROOT / "tests", "*.py")):
         listed = {entry["path"] for entry in data[group]}
-        present = {str(path.relative_to(ROOT)) for path in sorted(directory.glob(pattern))}
+        present = {path.relative_to(ROOT).as_posix() for path in sorted(directory.glob(pattern))}
         if listed != present:
             failures.append(f"registry: {group} list differs from the files on disk: {sorted(present - listed)}")
 
     if source_env() != {entry["name"] for entry in data["env"]}:
         failures.append("registry: environment variables differ from the ones the runtime reads")
 
-    setup_source = (ROOT / "setup_sidebar.py").read_text()
+    setup_source = (ROOT / "setup_sidebar.py").read_text(encoding="utf-8")
     for entry in data["managed_paths"]:
         for probe in entry.get("probe", []):
-            if probe not in setup_source and probe not in (ROOT / "configuration.py").read_text():
+            if probe not in setup_source and probe not in (ROOT / "configuration.py").read_text(encoding="utf-8"):
                 failures.append(f"registry: managed path {entry['name']} probe {probe!r} is not in the installer")
 
     for entry in data["evidence"]:
