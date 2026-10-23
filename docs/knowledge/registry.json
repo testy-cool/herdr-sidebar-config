@@ -65,6 +65,7 @@
     {"path": "tests/test_branch_length.py", "locks": "Standard/short selection removes exactly one cell"},
     {"path": "tests/test_pane_names.py", "locks": "Renamed panes prefix the task; already-prefixed labels are untouched"},
     {"path": "tests/test_folder_identity.py", "locks": "An agent folder's .herdr-agent.toml prefixes its icon and name; only the agent process's folder counts"},
+    {"path": "tests/test_deadline.py", "locks": "the scheduler notices an updated checkout only once its modules have settled"},
     {"path": "tests/test_child_rows.py", "locks": "hs_parent nests a pane under the agent right above it; branches, tree lines and the opener's task line"},
     {"path": "tests/test_status_first_rows.py", "locks": "hs_row_* rows: mark first, logo last, pane name beside the agent name, task under the icon, children under the mark"},
     {"path": "tests/test_agy_icon.py", "locks": "AGY mark and label; Ghostty mapping upgrade is single-line and idempotent"},
