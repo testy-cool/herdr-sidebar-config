@@ -192,18 +192,24 @@ def folder_identity(pane):
     return _display_text(data.get("icon"), 8), name
 
 
+def after_name(name, text):
+    """Text without a leading agent name ("teresa · ..."), or None if it has none."""
+    normalize = lambda value: re.sub(r"[-_]", " ", value).casefold()
+    start, rest = text[:len(name)], text[len(name):]
+    if normalize(start) == normalize(name) and not rest[:1].isalnum():
+        return rest.lstrip(" ·-–—:|")
+    return None
+
+
 def named_row(identity, label):
     """Split a named agent's row into its icon and name, and its task line."""
     icon, name = identity
     # Some session titles already start with the agent's name ("teresa · ...",
     # or "Minion god 12" for minion-god); the task line leaves it out.
-    normalize = lambda text: re.sub(r"[-_]", " ", text).casefold()
-    start, rest = label[:len(name)], label[len(name):]
-    if normalize(start) == normalize(name) and not rest[:1].isalnum():
-        label = rest.lstrip(" ·-–—:|")
+    rest = after_name(name, label)
+    if rest is not None:
         # The "12" left of "Minion god 12" is a session number, so no task line.
-        if re.fullmatch(r"\d*", label):
-            label = ""
+        label = "" if re.fullmatch(r"\d*", rest) else rest
     return (icon + " " + name if icon else name), label
 
 
@@ -371,11 +377,14 @@ def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset()
                 # agent's name, and the task starts under the icon.
                 row_label, row_task = named_row(identity, title)
                 pane_name = (pane.get("name") or pane.get("label") or "").strip() if pane_names else ""
-                same = lambda a, b: a.replace("-", " ").casefold() == b.replace("-", " ").casefold()
-                if pane_name and not same(pane_name, identity[1]):
+                # A pane name that starts with the agent's name ("teresa · interview")
+                # adds only the rest; one equal to it adds nothing.
+                rest = after_name(identity[1], pane_name)
+                pane_name = pane_name if rest is None else rest
+                if pane_name:
                     row_label += " · " + pane_name
                     # With no title of its own the task is the pane name, already shown.
-                    if same(row_task, pane_name):
+                    if row_task.replace("-", " ").casefold() == pane_name.replace("-", " ").casefold():
                         row_task = ""
             values[f"hs_{status}"] = mark + " " + label
             # The status-first rows: the mark leads, the logo ends the line,

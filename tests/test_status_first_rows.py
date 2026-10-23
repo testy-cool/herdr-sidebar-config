@@ -48,6 +48,15 @@ class StatusFirstRowTests(unittest.TestCase):
                                 WORKSPACES, {'t1': 'main'}, pane_names=True)['p3']
         self.assertEqual(untitled['hs_row_idle'], B + '○ ' + ICON + ' scraper · joshua')
         self.assertIsNone(untitled['hs_row_task'])
+        # A pane name that starts with the agent's name adds only the rest.
+        teresa = self.folder('teresa')
+        named = desired_rows([agent('p4', teresa, name='teresa · scrapingevals interview')],
+                             WORKSPACES, {'t1': 'main'}, pane_names=True)['p4']
+        self.assertEqual(named['hs_row_idle'], B + '○ ' + ICON + ' teresa · scrapingevals interview')
+        self.assertEqual(named['hs_row_task'], B * 3 + 'Task p4')
+        # Unlike a title's session number, a pane name's number tells panes apart.
+        numbered = desired_rows([agent('p5', scraper, name='scraper-2')], WORKSPACES, {'t1': 'main'}, pane_names=True)['p5']
+        self.assertEqual(numbered['hs_row_idle'], B + '○ ' + ICON + ' scraper · 2')
         # A pane named like its agent says nothing new.
         self.assertEqual(rows['p2']['hs_row_idle'], B * 3 + '○ ' + ICON + ' scraper')
         # The older rows keep the pane name in front of the task.
