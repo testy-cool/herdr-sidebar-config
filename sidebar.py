@@ -60,7 +60,9 @@ def described_task(pane):
     if tokens.get("hs_title"):
         return tokens["hs_title"]
     saved = pane.get("saved_context")
-    if isinstance(saved, dict) and saved.get("title") and not saved.get("detached"):
+    # A saved title that is only the latest user request is not the chat's title.
+    if (isinstance(saved, dict) and saved.get("title") and not saved.get("detached")
+            and saved.get("source") != "user request"):
         return saved["title"]
     # The chat's own title: Claude's newest generated title, or the session
     # name Codex and Pi keep. It says what the work is, where the latest
