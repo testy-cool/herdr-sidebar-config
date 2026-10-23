@@ -149,6 +149,44 @@ def with_pane_name(pane, label):
     return name + " - " + label
 
 
+# Optional file in the folder an agent runs in, for people who keep one folder
+# per named agent: `name` (default: the folder's name) and an `icon`.
+IDENTITY_FILE = ".herdr-agent.toml"
+
+
+def _display_text(value, limit):
+    if not isinstance(value, str):
+        return ""
+    text = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]|[\x00-\x1f\x7f]", "", " ".join(value.split()))
+    return text[:limit].strip()
+
+
+def folder_identity(pane):
+    """Return (icon, name) from the agent folder's identity file, or None."""
+    # The shell's cwd is where the pane started, often another agent's folder;
+    # foreground_cwd is the folder the agent process itself runs in.
+    folder = pane.get("foreground_cwd")
+    if not isinstance(folder, str) or not folder:
+        return None
+    try:
+        with (Path(folder) / IDENTITY_FILE).open("rb") as stream:
+            data = tomllib.load(stream)
+    except (OSError, ValueError):
+        return None
+    name = _display_text(data.get("name"), 32) or Path(folder).name
+    return _display_text(data.get("icon"), 8), name
+
+
+def with_folder_identity(pane, label):
+    """Prefix the agent folder's icon and name, when its folder has a file."""
+    identity = folder_identity(pane)
+    if not identity:
+        return label
+    icon, name = identity
+    text = name if label.casefold() == name.casefold() else name + " · " + label
+    return icon + " " + text if icon else text
+
+
 def desired_headers(panes, workspaces):
     names = {w["workspace_id"]: w["label"] for w in workspaces}
     seen = set()
@@ -212,6 +250,7 @@ def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset()
             label = task_label(pane, tabs)
             if pane_names:
                 label = with_pane_name(pane, label)
+            label = with_folder_identity(pane, label)
             values[f"hs_{status}"] = mark + " " + label
             previous = pane["pane_id"]
         dim_group = pane["workspace_id"] in inactive_ids
