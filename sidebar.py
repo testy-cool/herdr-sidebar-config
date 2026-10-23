@@ -200,33 +200,41 @@ def named_row(identity, label):
     start, rest = label[:len(name)], label[len(name):]
     if normalize(start) == normalize(name) and not rest[:1].isalnum():
         label = rest.lstrip(" ·-–—:|")
-        # What is left of "Minion god 12" says nothing, so no task line.
-        if not re.search(r"[^\W\d_]", label):
+        # The "12" left of "Minion god 12" is a session number, so no task line.
+        if re.fullmatch(r"\d*", label):
             label = ""
     return (icon + " " + name if icon else name), label
 
 
-# Characters that join the one before them into a single picture: combining
-# marks, variation selectors, the zero-width joiner, skin tones, keycaps, tags.
-_JOINS = re.compile("[\u0300-\u036f\u20d0-\u20ff\ufe00-\ufe0f\u200d"
-                    "\U0001f3fb-\U0001f3ff\U000e0020-\U000e007f]")
+# Characters that join the one before them into a single picture: variation
+# selectors, the zero-width joiner, skin tones, keycaps and tags. Combining
+# marks of any script join too (unicodedata.combining).
+_JOINS = re.compile("[\ufe00-\ufe0f\u200d\u20e3\U0001f3fb-\U0001f3ff\U000e0020-\U000e007f]")
 
 
 def _cells(text):
     """Terminal cells a short icon or logo takes, as Herdr's unicode-width counts.
 
-    An emoji that is wide on its own, or made wide by U+FE0F (❤️), or joined
-    from several (👩‍💻), takes two cells; everything else one.
+    An emoji that is wide on its own, made wide by U+FE0F (❤️) or joined from
+    several (👩‍💻) takes two cells; U+FE0E asks for the one-cell text form.
+    Other characters take one cell, and their combining marks none.
     """
     clusters = []
     for char in text:
-        if clusters and (_JOINS.match(char) or clusters[-1][-1] == "\u200d"):
+        joins = _JOINS.match(char) or unicodedata.combining(char)
+        if clusters and (joins or clusters[-1][-1] == "\u200d"):
             clusters[-1] += char
-        else:
+        elif not joins:
             clusters.append(char)
-    wide = lambda c: ("\ufe0f" in c or "\u200d" in c
-                      or any(unicodedata.east_asian_width(x) in "WF" for x in c))
-    return sum(2 if wide(c) else 1 for c in clusters)
+    def width(cluster):
+        if "\ufe0e" in cluster:
+            return 1
+        if "\u200d" in cluster or "\u20e3" in cluster:
+            return 2
+        if "\ufe0f" in cluster and ord(cluster[0]) >= 0x2000:
+            return 2
+        return 2 if unicodedata.east_asian_width(cluster[0]) in "WF" else 1
+    return sum(width(c) for c in clusters)
 
 
 # Herdr puts " · " between the logo token and the status token.

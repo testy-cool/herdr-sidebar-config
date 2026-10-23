@@ -98,8 +98,17 @@ class FolderIdentityTests(unittest.TestCase):
 
     def test_a_task_without_letters_is_kept_unless_it_followed_the_name(self):
         dag = self.folder('dag', 'icon = "🔀"\n')
-        row = self.rows(agent('p1', dag, tokens={'hs_title': '#123'}))['p1']
-        self.assertEqual(row['hs_task'], B * 10 + '#123')
+        for title, task in (('#123', '#123'), ('dag · #123', '#123'), ('dag · 2026-10-23', '2026-10-23')):
+            row = self.rows(agent('p1', dag, tokens={'hs_title': title}))['p1']
+            self.assertEqual(row['hs_task'], B * 10 + task, title)
+
+    def test_one_cell_icons_shift_the_task_by_one(self):
+        # Hebrew and Devanagari marks, text-style emoji and a plain letter
+        # with U+FE0F all take one cell in Herdr.
+        for icon in ('\u05d0\u05b4', '\u0915\u093c', '\u2615\ufe0e', 'A\ufe0f'):
+            folder = self.folder('b%x' % ord(icon[0]), 'icon = "%s"\n' % icon)
+            row = self.rows(agent('p1', folder))['p1']
+            self.assertEqual(row['hs_task'], B * 9 + 'Fix the nightly flow', repr(icon))
 
     def test_broken_or_hostile_files_are_contained(self):
         broken = self.folder('broken', 'icon = "unclosed\n')
