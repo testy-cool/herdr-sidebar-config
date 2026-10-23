@@ -45,10 +45,20 @@ class CodeWatch:
         return stamp not in (self.started, self.rejected) and now - self.since >= 1
 
 
+def load():
+    """Everything the scheduler needs from the rest of the plugin."""
+    from sidebar import read_state, refresh
+    from runtime import PLUGIN_ID
+    from ipc import call
+    from animation import INTERVAL, publish_frame
+    return read_state, refresh, PLUGIN_ID, call, INTERVAL, publish_frame
+
+
 def imports_cleanly(root=Path(__file__).resolve().parent):
-    """Whether the updated checkout loads, so a broken one never takes over."""
+    """Whether the updated checkout loads what a scheduler needs, so a broken
+    one never takes over."""
     try:
-        return subprocess.run([sys.executable, "-c", "import deadline, sidebar, animation"],
+        return subprocess.run([sys.executable, "-c", "import deadline; deadline.load()"],
                               cwd=root, capture_output=True, timeout=30).returncode == 0
     except (OSError, subprocess.TimeoutExpired):
         return False
@@ -70,10 +80,7 @@ def ensure_timer(state, start=True):
 
 
 def run():
-    from sidebar import read_state, refresh
-    from runtime import PLUGIN_ID
-    from ipc import call
-    from animation import INTERVAL, publish_frame
+    read_state, refresh, PLUGIN_ID, call, INTERVAL, publish_frame = load()
     state = Path(os.environ["HERDR_PLUGIN_STATE_DIR"])
     timer = Lock(state / "deadline.lock")
     if not timer.acquire(blocking=False):
@@ -84,7 +91,8 @@ def run():
         next_frame = time.monotonic() + INTERVAL
         # Once updated code has settled and loads, hand the deadlines to a
         # fresh scheduler that runs it. A checkout that fails to load is
-        # skipped until it changes again.
+        # skipped until it changes again. Should the new scheduler still fail
+        # to start, the next lifecycle refresh starts one, as after any stop.
         watch = CodeWatch(STARTED or code_stamp(), time.monotonic())
         checked = time.monotonic()
         while True:
@@ -92,13 +100,15 @@ def run():
                 checked = time.monotonic()
                 stamp = code_stamp()
                 if watch.settled(stamp, checked):
-                    if imports_cleanly():
+                    # A change during the check leaves its result about older code.
+                    if imports_cleanly() and code_stamp() == stamp:
                         print("Sidebar scheduler: plugin code changed, restarting", file=sys.stderr, flush=True)
                         listener.close()
                         timer.release()
                         spawn_detached([sys.executable, str(Path(__file__).resolve())], state / "deadline.log")
                         return
-                    watch.rejected = stamp
+                    elif code_stamp() == stamp:
+                        watch.rejected = stamp
             with Lock(state / "group-headers.lock"):
                 cached = read_state(state / "activity.json")
                 deadline = cached.get("next_deadline")

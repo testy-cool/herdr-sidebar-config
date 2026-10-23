@@ -58,13 +58,23 @@ class CodeUpdateTests(unittest.TestCase):
         watch.settled(changed, 101)
         self.assertTrue(watch.settled(changed, 102))
 
+    def test_the_load_check_needs_what_a_scheduler_imports(self):
+        # A copy of the real plugin loads; one with a module emptied, broken
+        # or missing does not, even where a plain import would succeed.
+        plugin = Path(deadline.__file__).resolve().parent
+        for change in (None, ('sidebar.py', ''), ('ipc.py', 'def (\n'), ('animation.py', None)):
+            root = Path(tempfile.mkdtemp())
+            for module in plugin.glob('*.py'):
+                (root / module.name).write_text(module.read_text(encoding='utf-8'), encoding='utf-8')
+            if change:
+                name, text = change
+                if text is None:
+                    (root / name).unlink()
+                else:
+                    (root / name).write_text(text, encoding='utf-8')
+            self.assertEqual(imports_cleanly(root), change is None, change)
+
     def test_a_checkout_that_does_not_load_is_skipped_until_it_changes(self):
-        self.assertTrue(imports_cleanly(self.root))
-        self.write('sidebar.py', 'def (\n', 5)
-        self.assertFalse(imports_cleanly(self.root))
-        (self.root / 'sidebar.py').write_text('x = 1\n', encoding='utf-8')
-        (self.root / 'animation.py').unlink()
-        self.assertFalse(imports_cleanly(self.root))
         watch = CodeWatch([], 100)
         broken = code_stamp(self.root)
         watch.settled(broken, 101)
