@@ -63,6 +63,16 @@ class EditorTests(unittest.TestCase):
         self.assertFalse(path.exists())
         self.assertEqual(applied, [])
 
+    def test_an_error_fits_in_the_popup_herdr_opens(self):
+        # Herdr draws a border, so the popup's content is two rows shorter.
+        manifest = tomllib.loads(Path(settings_ui.__file__).with_name("herdr-plugin.toml").read_text(encoding="utf-8"))
+        for pane in (p for p in manifest["panes"] if p["id"].startswith("settings")):
+            terminal = FakeTerminal(["down", "down", "0", "enter", "escape"], size=(pane["height"] - 2, pane["width"] - 2))
+            with tempfile.TemporaryDirectory() as directory:
+                settings_ui.editor(terminal, path=Path(directory, "config.toml"), apply=lambda: None)
+            shown = [text for frame in terminal.frames for _, text, _ in frame.values()]
+            self.assertTrue(any("Dimming delay must be" in text for text in shown), pane["id"])
+
     def test_rows_fit_a_narrow_terminal(self):
         terminal = FakeTerminal(["escape"], size=(18, 20))
         with tempfile.TemporaryDirectory() as directory:
