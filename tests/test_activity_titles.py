@@ -86,6 +86,21 @@ class ActivityTitleTests(unittest.TestCase):
         ])
         self.assertEqual(activity_title(self.pane("claude")), "Repair remote restore")
 
+    def test_claude_session_under_the_agents_own_folder(self):
+        # Started from another agent's folder: the shell reports that folder,
+        # and Claude filed the session under the agent's own.
+        self.write(".claude/projects/-work-agents-oana/session-1.jsonl", [
+            {"type": "ai-title", "aiTitle": "Older title", "sessionId": "session-1"},
+            {"type": "ai-title", "aiTitle": "Newest title", "sessionId": "session-1"},
+        ])
+        pane = dict(self.pane("claude"), cwd="/work/agents/minion-god", foreground_cwd="/work/agents/oana")
+        self.assertEqual(activity_title(pane), "Newest title")
+        # A title that only names either folder is still refused.
+        self.write(".claude/projects/-work-agents-oana/session-2.jsonl", [
+            {"type": "ai-title", "aiTitle": "oana", "sessionId": "session-2"},
+        ])
+        self.assertIsNone(activity_title(dict(pane, agent_session={"kind": "id", "agent": "claude", "value": "session-2"})))
+
     def test_claude_session_that_entered_a_worktree(self):
         # Claude writes under the worktree; the pane still reports the checkout.
         self.write(".claude/projects/-work-project--claude-worktrees-fix-1/session-1.jsonl", [

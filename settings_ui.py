@@ -53,7 +53,7 @@ def editor(terminal, path=None, apply=apply_now):
         elif FIELDS[selected][0] == "logo_position":
             draw(2, "Before the name takes the place of a folder's icon.")
         elif FIELDS[selected][0] == "pane_names":
-            draw(2, "Shows {pane name} - {task} for renamed panes.")
+            draw(2, "Shows a renamed pane's name, with its task under it.")
         elif FIELDS[selected][0] == "conversation_titles":
             draw(2, "Names generic tabs from saved conversations. No AI calls.")
         elif FIELDS[selected][0] == "loader_style":

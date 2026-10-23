@@ -24,13 +24,15 @@ def _clean(value, pane):
     text = " ".join(value.split()).strip()
     # Strip terminal control characters from display metadata.
     text = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]|[\x00-\x1f\x7f]", "", text)
-    cwd = pane.get("cwd") or ""
-    project = Path(cwd).name if isinstance(cwd, str) else ""
     canonical = lambda s: re.sub(r"[\W_]+", "", s).casefold()
-    if (not text or VAGUE.fullmatch(text) or text.startswith(("<", "# AGENTS.md"))
-            or (project and (canonical(text) == canonical(project)
-                            or re.fullmatch(re.escape(project) + r"-[a-z0-9]{2}", text, re.I)))):
+    if not text or VAGUE.fullmatch(text) or text.startswith(("<", "# AGENTS.md")):
         return None
+    # A name that is only the shell's or the agent's own folder says nothing.
+    for folder in (pane.get("cwd"), pane.get("foreground_cwd")):
+        project = Path(folder).name if isinstance(folder, str) else ""
+        if project and (canonical(text) == canonical(project)
+                        or re.fullmatch(re.escape(project) + r"-[a-z0-9]{2}", text, re.I)):
+            return None
     return text[:160]
 
 
@@ -107,19 +109,29 @@ def _codex(pane, session_id):
 
 
 def _claude(pane, session_id):
-    cwd = pane.get("cwd")
-    if not isinstance(cwd, str) or not cwd:
-        return None
     home = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
-    encoded = re.sub(r"[^A-Za-z0-9-]", "-", cwd.rstrip("/\\"))
-    project = home / "projects" / encoded
-    if not (project / (session_id + ".jsonl")).exists():
+    # Claude files a session under the folder it started in: the shell's
+    # (cwd), or the agent's own (foreground_cwd) when an agent was started
+    # from another agent's folder.
+    folders = [f for f in (pane.get("cwd"), pane.get("foreground_cwd")) if isinstance(f, str) and f]
+    if not folders:
+        return None
+    project = None
+    for folder in folders:
+        encoded = re.sub(r"[^A-Za-z0-9-]", "-", folder.rstrip("/\\"))
+        candidate = home / "projects" / encoded
+        if (candidate / (session_id + ".jsonl")).exists():
+            project = candidate
+            break
         # A session that entered a Claude worktree keeps writing under the
         # worktree's directory while the pane still reports the checkout.
         moved = next((home / "projects").glob(
             glob.escape(encoded) + "--claude-worktrees-*/" + session_id + ".jsonl"), None)
         if moved:
             project = moved.parent
+            break
+    if project is None:
+        project = home / "projects" / re.sub(r"[^A-Za-z0-9-]", "-", folders[0].rstrip("/\\"))
     names = {}
     try:
         for record in _records(project / (session_id + ".jsonl")):

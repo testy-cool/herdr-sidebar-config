@@ -54,7 +54,9 @@ instead, inside the status token and in its colour, and a folder's icon is left
 out. A named agent's task gets its own line, starting under the icon or logo.
 
 A pane tagged `hs_parent=<pane id>` that comes right after that agent's rows in
-the same tab is drawn one level in, its branch under the parent's status mark. Herdr's
+the same tab is drawn one level in, its branch under the parent's status mark.
+In the status-first rows that branch is long (`├── `), a fixed four cells; with
+a one-cell icon or logo before the parent's name, the child's mark sits under it. Herdr's
 own order is layout order, and a pane split from its opener lands right after
 it, so no reordering is needed; a tag whose parent is gone or not directly
 above is ignored. See [show who opened an agent](setup.md#show-who-opened-an-agent).
@@ -64,16 +66,19 @@ The outer workspace-to-tab connection has no branch. Under each tab, agents use
 column while preserving indentation. A workspace with one tab has neither tab headings nor branches.
 The tree is presentational, with native Herdr row selection and navigation.
 
-Titles prefer a user `hs_title` token, then a native exact-session name from
-Codex's read-only SQLite/index, Claude's name/title records, or Pi's saved
-session_info. Project-only and trivial names are rejected. For a working Codex or Claude pane with a
-native session ID, the plugin scans at most the final 512 KiB of that provider's
-local history and selects its latest meaningful user instruction. Malformed
-records, injected instruction headers, screenshot markers, and vague follow-ups
-are skipped. Other cases use the existing terminal title, then the herdr agent
+Titles prefer a user `hs_title` token, then the chat's own title: a native
+exact-session name from Codex's read-only SQLite/index, Claude's newest
+name/title records (an explicit title, else its generated `ai-title`) in the
+final 512 KiB of the session transcript, or Pi's saved session_info. Claude's
+transcript is looked up under both the shell's folder and the agent process's
+own. Project-only and trivial names are rejected. The latest user message is
+not used: it is often a one-word answer or a pasted block. Other cases use the
+existing terminal title, then the herdr agent
 name, then tab and provider fallbacks. A terminal title that only names the
-pane's own directory (Pi's fixed `π - <cwd>`) is refused, because the space row
-already shows where the agent is. These are deterministic local heuristics, not conversation
+pane's own directory (Pi's fixed `π - <cwd>`), either the shell's or the agent
+process's, is refused, because the space row already shows where the agent is.
+Under a name, the status-first rows show a task only when one of the titles
+above describes it; the agent name, tab and provider fallbacks are left out. These are deterministic local heuristics, not conversation
 analysis or a model call.
 
 When the folder an agent process runs in (`foreground_cwd`, not the shell's

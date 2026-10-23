@@ -29,7 +29,8 @@ def request_text(value, pane):
         return None
     for line in value.splitlines():
         text = CONTROL.sub("", line).strip().lstrip("#>*- ")
-        text = re.sub(r"^(?:\[Image #\d+\]\s*)+", "", text, flags=re.I)
+        # Claude Code's stand-ins for a pasted screenshot or block of text.
+        text = re.sub(r"^(?:\[(?:Image #\d+|Pasted text #\d+(?: \+\d+ lines?)?)\]\s*)+", "", text, flags=re.I)
         text = re.sub(r"^(?:can|could|would) (?:you|we) (?:please )?", "", text, flags=re.I)
         if not text or text.startswith(("<", "AGENTS.md instructions")) or FOLLOWUP.match(text):
             continue

@@ -83,6 +83,17 @@ class ContextRuntimeTests(unittest.TestCase):
                                          ('workspace', 'report-metadata')] for call in self.calls))
         self.assertIn('codex | sleeping', lines_for_tab(self.snapshot, self.context(), 'w1:t1'))
 
+    def test_task_line_is_never_the_latest_request(self):
+        # No chat title: the saved record falls back to the latest request,
+        # which still names the tab, but the task comes from the terminal title.
+        self.snapshot['agents'][0]['terminal_title_stripped'] = 'Fix the parser'
+        refresh()
+        self.assertEqual(self.context()['records']['w1:p1']['source'], 'user request')
+        tokens = self.snapshot['panes'][0]['tokens']
+        self.assertIn('Fix the parser', tokens['hs_row_idle'])
+        self.assertIn('Fix the parser', tokens['hs_idle'])
+        self.assertFalse(any('Repair export handling' in v for k, v in tokens.items() if k.startswith('hs_')))
+
     def test_manual_rename_and_clear_preserve_user_values(self):
         self.snapshot['panes'][0]['tokens'] = {'hs_title': 'My objective', 'other_plugin': 'keep'}
         refresh()
