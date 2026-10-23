@@ -30,6 +30,18 @@ and **Short** uses `├` / `└`, saving one column without removing indentation
 The config key is `branch_length = "standard"` (default) or `"short"`.
 Single-tab workspaces stay branch-free with either choice.
 
+**Provider logo** sets where the Claude, Codex or other provider logo goes on
+an agent's line. **End of line** (default) puts it last; **Before the name**
+puts it right after the status mark, in the line's colour, and leaves out the
+icon from a [folder's `.herdr-agent.toml`](#name-an-agent-by-its-folder):
+
+```text
+├ ○ ✻ scraper · joshua
+│   Yeah especially 3
+```
+
+The config key is `logo_position = "end"` (default) or `"before_name"`.
+
 **Pane name before task** shows a renamed pane as `{pane name} - {task}`, for
 example `architect - Fix landing page`. Panes without a name (set with
 `herdr pane rename`) keep the task alone, and a task that already starts with the

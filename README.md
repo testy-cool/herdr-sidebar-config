@@ -99,6 +99,7 @@ Setup adds the shortcut only when it is free. Use arrows to select and change;
 | Animated loaders | Off by default; On animates working agents only |
 | Loader style | Dots · Orbit · Pulse |
 | Branch length | Standard `├─` / `└─` (default), or Short `├` / `└` to save one column |
+| Provider logo | End of line (default), or Before the name, in place of a folder's icon |
 
 Animation adds redraws at up to eight frames per second. Turning it off restores
 the static indicator and stops animation wakeups.

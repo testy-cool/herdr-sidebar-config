@@ -11,12 +11,14 @@ FIELDS = [("order", "Order", ["workspace", "activity"]),
           ("animated_loaders", "Animated loaders", [False, True]),
           ("loader_style", "Loader style", ["dots", "orbit", "pulse"]),
           ("branch_length", "Branch length", ["standard", "short"]),
+          ("logo_position", "Provider logo", ["end", "before_name"]),
           ("pane_names", "Pane name before task", [False, True]),
           ("conversation_titles", "Conversation tab titles", [False, True])]
 LABELS = {"auto": "Automatic", "font": "Font", "text": "Text",
           "workspace": "Workspace order", "activity": "Active groups first", False: "Off", True: "On",
           "dots": "Dots", "orbit": "Orbit", "pulse": "Pulse",
-          "standard": "Standard  ├─  └─", "short": "Short     ├   └"}
+          "standard": "Standard  ├─  └─", "short": "Short     ├   └",
+          "end": "End of line", "before_name": "Before the name"}
 
 
 def open_popup():
@@ -48,6 +50,8 @@ def editor(terminal, path=None, apply=apply_now):
         draw(1, "Sidebar settings", "bold")
         if FIELDS[selected][0] == "animated_loaders":
             draw(2, "On uses extra CPU while agents work.")
+        elif FIELDS[selected][0] == "logo_position":
+            draw(2, "Before the name takes the place of a folder's icon.")
         elif FIELDS[selected][0] == "pane_names":
             draw(2, "Shows {pane name} - {task} for renamed panes.")
         elif FIELDS[selected][0] == "conversation_titles":

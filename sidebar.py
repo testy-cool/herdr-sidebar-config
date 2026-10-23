@@ -287,7 +287,7 @@ def child_parents(panes, groups):
     return parents
 
 
-def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset(), working_glyph="◔", branch_length="standard", pane_names=False, inactive_pane_ids=frozenset()):
+def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset(), working_glyph="◔", branch_length="standard", pane_names=False, inactive_pane_ids=frozenset(), logo_position="end"):
     headers = desired_headers(panes, workspaces)
     groups = {}
     tab_ids = {}
@@ -375,7 +375,8 @@ def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset()
                                          + BLANK * (under - 2) + task)
                 # In the status-first rows the pane's own name sits beside the
                 # agent's name, and the task starts under the icon.
-                row_label, row_task = named_row(identity, title)
+                # With the logo before the name, it takes the folder icon's place.
+                row_label, row_task = named_row(("", identity[1]) if logo_position == "before_name" else identity, title)
                 pane_name = (pane.get("name") or pane.get("label") or "").strip() if pane_names else ""
                 # A pane name that starts with the agent's name ("teresa · interview")
                 # adds only the rest; one equal to it adds nothing.
@@ -389,8 +390,11 @@ def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset()
             values[f"hs_{status}"] = mark + " " + label
             # The status-first rows: the mark leads, the logo ends the line,
             # and a line drops from the mark to this agent's children.
+            if logo_position == "before_name":
+                # The logo then takes the row's colour, and nothing ends the line.
+                row_label = logo + " " + row_label
             values[f"hs_row_{status}"] = prefix + row_head + mark + " " + row_label
-            values["hs_row_logo"] = logo
+            values["hs_row_logo"] = None if logo_position == "before_name" else logo
             if row_task:
                 values["hs_row_task"] = (row_carries[pane["pane_id"]] + ("│" if has_children else BLANK)
                                          + BLANK * _cells(mark) + row_task)
@@ -458,6 +462,7 @@ def refresh(clear=False, restore_view=False):
                                working_glyph=glyph(time.monotonic(), settings["loader_style"]) if animated else "◔",
                                branch_length=settings["branch_length"],
                                pane_names=settings["pane_names"],
+                               logo_position=settings["logo_position"],
                                inactive_pane_ids=activity.inactive_pane_ids)
         for pane in panes:
             desired[pane["pane_id"]]["hs_workspace_rank"] = ranks.get(pane["workspace_id"]) if pane.get("agent") else None
