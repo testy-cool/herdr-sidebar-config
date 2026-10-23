@@ -7,6 +7,23 @@ import time
 from host import Lock, WakeListener, spawn_detached, wake
 
 
+def code_stamp(root=Path(__file__).resolve().parent):
+    """Name, size and change time of each module, so an update can be noticed."""
+    stamp = []
+    for path in sorted(root.glob("*.py")):
+        try:
+            info = path.stat()
+        except OSError:
+            continue  # Removed while a checkout is being updated.
+        stamp.append((path.name, info.st_size, info.st_mtime_ns))
+    return stamp
+
+
+def code_updated(started, stamp, now):
+    """True once the code differs from the start and has not changed for a second."""
+    return stamp != started and all(now - mtime / 1e9 >= 1 for _, _, mtime in stamp)
+
+
 def ensure_timer(state, start=True):
     # Probe only: the scheduler takes the lock itself, so no locked handle has
     # to cross a process boundary. A probe racing a starting scheduler is
@@ -35,7 +52,19 @@ def run():
     # newest state first.
     with WakeListener(state) as listener:
         next_frame = time.monotonic() + INTERVAL
+        # Setup links the plugin from its checkout, so a git pull changes the
+        # code under this long-lived process. Once the new code has settled,
+        # hand the deadlines to a fresh scheduler that runs it.
+        started, checked = code_stamp(), time.monotonic()
         while True:
+            if time.monotonic() - checked >= 1:
+                checked = time.monotonic()
+                if code_updated(started, code_stamp(), time.time()):
+                    print("Sidebar scheduler: plugin code changed, restarting", file=sys.stderr, flush=True)
+                    listener.close()
+                    timer.release()
+                    spawn_detached([sys.executable, str(Path(__file__).resolve())], state / "deadline.log")
+                    return
             with Lock(state / "group-headers.lock"):
                 cached = read_state(state / "activity.json")
                 deadline = cached.get("next_deadline")
