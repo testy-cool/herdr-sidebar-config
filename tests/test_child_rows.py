@@ -51,6 +51,12 @@ class ChildRowTests(unittest.TestCase):
         parents = child_parents(panes, {'w1': {'t1': ['p1', 'p3', 'p2', 'p4', 'p5', 'p6'], 't2': ['p7']}})
         self.assertEqual(parents, dict.fromkeys(['p1', 'p3', 'p2', 'p4', 'p5', 'p6', 'p7']))
 
+    def test_an_opener_in_the_tab_before_is_not_a_parent(self):
+        # The opener is the last agent of t1, right before the tab boundary.
+        panes = [agent('p1'), agent('p2', 'p1', tab='t2')]
+        self.assertEqual(child_parents(panes, {'w1': {'t1': ['p1'], 't2': ['p2']}}),
+                         {'p1': None, 'p2': None})
+
     def test_the_opener_task_line_drops_a_line_to_its_children(self):
         folder = Path(tempfile.mkdtemp()) / 'dag'
         folder.mkdir()
