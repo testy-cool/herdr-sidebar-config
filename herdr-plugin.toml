@@ -14,7 +14,7 @@ id = "settings"
 title = "Sidebar settings"
 placement = "popup"
 width = 68
-height = 20
+height = 21
 platforms = ["linux", "macos"]
 command = ["sh", "run.sh", "--settings"]
 
@@ -142,7 +142,7 @@ id = "settings-windows"
 title = "Sidebar settings"
 placement = "popup"
 width = 68
-height = 20
+height = 21
 platforms = ["windows"]
 command = ["cmd", "/c", '.\run.cmd', "--settings"]
 

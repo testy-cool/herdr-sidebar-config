@@ -9,7 +9,7 @@ import tomllib
 
 DEFAULTS = {"icons": "auto", "inactive_after_seconds": 600, "order": "workspace",
             "animated_loaders": False, "loader_style": "dots", "branch_length": "standard",
-            "pane_names": False, "conversation_titles": False}
+            "pane_names": False, "conversation_titles": False, "logo_position": "end"}
 
 
 def settings_path():
@@ -28,6 +28,8 @@ def validate(values):
         raise ValueError("Loader style must be dots, orbit, or pulse.")
     if result["branch_length"] not in ("standard", "short"):
         raise ValueError("Branch length must be standard or short.")
+    if result["logo_position"] not in ("end", "before_name"):
+        raise ValueError("Provider logo must be at the end or before the name.")
     if not isinstance(result["pane_names"], bool):
         raise ValueError("Pane names must be on or off.")
     if not isinstance(result["conversation_titles"], bool):

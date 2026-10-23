@@ -30,6 +30,18 @@ and **Short** uses `├` / `└`, saving one column without removing indentation
 The config key is `branch_length = "standard"` (default) or `"short"`.
 Single-tab workspaces stay branch-free with either choice.
 
+**Provider logo** sets where the Claude, Codex or other provider logo goes on
+an agent's line. **End of line** (default) puts it last; **Before the name**
+puts it right after the status mark, in the line's colour, and leaves out the
+icon from a [folder's `.herdr-agent.toml`](#name-an-agent-by-its-folder):
+
+```text
+├ ○ ✻ scraper · joshua
+│   Yeah especially 3
+```
+
+The config key is `logo_position = "end"` (default) or `"before_name"`.
+
 **Pane name before task** shows a renamed pane as `{pane name} - {task}`, for
 example `architect - Fix landing page`. Panes without a name (set with
 `herdr pane rename`) keep the task alone, and a task that already starts with the
@@ -177,7 +189,8 @@ cp integrations/kimchi/herdr-agent-state.ts ~/.config/kimchi/harness/extensions/
 
 The pane then reports `kimchi` with its idle, working and blocked states. Herdr
 accepts `rows_by_agent` only for agents it knows, so the default rows carry one
-`$hs_row_logo_kimchi` token that colours the Kimchi mark orange.
+`$hs_row_logo_kimchi` token that colours the Kimchi mark orange at the end of
+the line. With the logo before the name, it takes the line's colour instead.
 
 Pi uses the bundled mark at U+E1AC, or `PI` in text mode. Upgrading an older
 installation requires both the updated plugin and font; rerun setup to replace
@@ -196,7 +209,8 @@ icon = "🔀"
 Both fields are optional. Without `name`, the folder's name is used. The row
 then shows the status, the icon, the name and the provider icon, and the task
 moves to a line of its own starting under the icon, so a narrow sidebar does
-not cut it off:
+not cut it off (with **Provider logo: Before the name**, the provider logo takes
+the icon's place):
 
 ```text
 ├─ ○ 🔀 dag · ✻
@@ -214,8 +228,8 @@ Agents without the file keep their single row.
 
 The icon can be any emoji or symbol. A one-colour symbol from a Nerd Font takes
 the row's colour and fades with it; an emoji keeps its own colours. With other
-machines connected, Herdr adds each row's machine name after the name, before
-the provider icon. Names are cut at 32 characters and control characters
+machines connected, Herdr adds each row's machine name after the name, and
+before the provider icon when that ends the line. Names are cut at 32 characters and control characters
 are removed, since any folder an agent runs in can carry this file. A file over
 4 KB, or anything that is not a regular file, is ignored.
 
