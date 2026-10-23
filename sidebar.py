@@ -274,7 +274,8 @@ def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset()
         heading = headers[pane["pane_id"]]
         values = {"hs_group": heading, "hs_tab": None, "hs_logo_focus": None,
                   "hs_gap": None, "hs_logo": None, "hs_terminals": None, "hs_task": None,
-                  "hs_row_logo": None, "hs_row_task": None}
+                  "hs_row_logo": None, "hs_row_task": None,
+                  "hs_agent_name": None, "hs_agent_task": None}
         values.update({f"hs_{state}": None for state in STATES})
         values.update({f"hs_row_{state}": None for state in STATES})
         if pane.get("agent"):
@@ -330,6 +331,9 @@ def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset()
             # Under a name, a stand-in such as the tab's label or "Pi session"
             # says nothing more, so only a described task gets the second line.
             row_title = described or ""
+            # The same name and task as plain text, for clients that draw their
+            # own rows (such as a GUI) instead of Herdr's token rows.
+            plain_name, plain_task = None, described
             identity = folder_identity(pane)
             if identity:
                 # A named agent's row holds its icon and name; the task goes on
@@ -359,12 +363,17 @@ def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset()
                     # With no title of its own the task is the pane name, already shown.
                     if row_task.replace("-", " ").casefold() == pane_name.replace("-", " ").casefold():
                         row_task = ""
+                plain_name = identity[1] + (" · " + pane_name if pane_name else "")
+                plain_task = row_task
             elif pane_names and (pane.get("name") or pane.get("label") or "").strip():
                 # An agent known only by its pane's name gets the same two
                 # lines: that name, then the task under it.
                 row_label = (pane.get("name") or pane.get("label")).strip()
                 rest = after_name(row_label, row_title)
                 row_task = row_title if rest is None else rest
+                plain_name, plain_task = row_label, row_task
+            values["hs_agent_name"] = plain_name or None
+            values["hs_agent_task"] = plain_task or None
             values[f"hs_{status}"] = mark + " " + label
             # The status-first rows: the mark leads, the logo ends the line,
             # and a line drops from the mark to this agent's children.
