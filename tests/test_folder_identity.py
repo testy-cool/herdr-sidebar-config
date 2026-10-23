@@ -89,6 +89,18 @@ class FolderIdentityTests(unittest.TestCase):
         short = desired_rows(panes, [{'workspace_id': 'w1', 'label': 'Demo'}], tabs, branch_length='short')
         self.assertEqual(short['p1']['hs_task'], '│' + B + B * 10 + 'Fix the nightly flow')
 
+    def test_emoji_icons_shift_the_task_by_the_width_herdr_gives_them(self):
+        # Herdr's unicode-width counts each of these as two cells.
+        for icon in ('❤️', '☀️', '👩\u200d💻', '1️⃣'):
+            folder = self.folder('a%x' % ord(icon[0]), 'icon = "%s"\n' % icon)
+            row = self.rows(agent('p1', folder))['p1']
+            self.assertEqual(row['hs_task'], B * 10 + 'Fix the nightly flow', icon)
+
+    def test_a_task_without_letters_is_kept_unless_it_followed_the_name(self):
+        dag = self.folder('dag', 'icon = "🔀"\n')
+        row = self.rows(agent('p1', dag, tokens={'hs_title': '#123'}))['p1']
+        self.assertEqual(row['hs_task'], B * 10 + '#123')
+
     def test_broken_or_hostile_files_are_contained(self):
         broken = self.folder('broken', 'icon = "unclosed\n')
         self.assertEqual(self.rows(agent('p1', broken))['p1']['hs_idle'],

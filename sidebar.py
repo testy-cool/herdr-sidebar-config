@@ -200,15 +200,33 @@ def named_row(identity, label):
     start, rest = label[:len(name)], label[len(name):]
     if normalize(start) == normalize(name) and not rest[:1].isalnum():
         label = rest.lstrip(" ·-–—:|")
-    # What is left of "Minion god 12" says nothing, so no task line.
-    task = label if re.search(r"[^\W\d_]", label) else ""
-    return (icon + " " + name if icon else name), task
+        # What is left of "Minion god 12" says nothing, so no task line.
+        if not re.search(r"[^\W\d_]", label):
+            label = ""
+    return (icon + " " + name if icon else name), label
+
+
+# Characters that join the one before them into a single picture: combining
+# marks, variation selectors, the zero-width joiner, skin tones, keycaps, tags.
+_JOINS = re.compile("[\u0300-\u036f\u20d0-\u20ff\ufe00-\ufe0f\u200d"
+                    "\U0001f3fb-\U0001f3ff\U000e0020-\U000e007f]")
 
 
 def _cells(text):
-    """Terminal cells a short display string takes."""
-    return sum(0 if unicodedata.combining(c) or c in "‍️" else
-               2 if unicodedata.east_asian_width(c) in "WF" else 1 for c in text)
+    """Terminal cells a short icon or logo takes, as Herdr's unicode-width counts.
+
+    An emoji that is wide on its own, or made wide by U+FE0F (❤️), or joined
+    from several (👩‍💻), takes two cells; everything else one.
+    """
+    clusters = []
+    for char in text:
+        if clusters and (_JOINS.match(char) or clusters[-1][-1] == "\u200d"):
+            clusters[-1] += char
+        else:
+            clusters.append(char)
+    wide = lambda c: ("\ufe0f" in c or "\u200d" in c
+                      or any(unicodedata.east_asian_width(x) in "WF" for x in c))
+    return sum(2 if wide(c) else 1 for c in clusters)
 
 
 # Herdr puts " · " between the logo token and the status token.
