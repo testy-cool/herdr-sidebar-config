@@ -65,8 +65,8 @@ already shows where the agent is. These are deterministic local heuristics, not 
 analysis or a model call.
 
 When the folder an agent process runs in (`foreground_cwd`, not the shell's
-`cwd`) holds `.herdr-agent.toml`, its `icon` and `name` go before whichever
-title was chosen. See [name an agent by its folder](setup.md#name-an-agent-by-its-folder).
+`cwd`) holds `.herdr-agent.toml`, its `icon` and `name` fill the agent's row and
+whichever title was chosen moves to an `hs_task` line under the name. See [name an agent by its folder](setup.md#name-an-agent-by-its-folder).
 
 Saved conversation context extends these exact-session reads to generic tab
 names and a read-only popup. Hibernate records link sleeping conversations to
@@ -85,6 +85,7 @@ Publisher: `plugin:testy-cool.herdr-sidebar`.
 | `hs_working`, `hs_blocked`, `hs_done`, `hs_idle`, `hs_unknown` | Exactly one populated with the native status symbol and task label |
 | `hs_gap` | Blank row after the last agent before another workspace |
 | `hs_terminals` | Names of terminal-only tabs in this workspace |
+| `hs_task` | Task line under a named agent's row, indented under its name |
 | `hs_*_dim` | Mutually exclusive dim versions of agent/group display tokens |
 | `hs_space`, `hs_space_dim` | Mutually exclusive workspace labels in Spaces |
 | `hs_title` | Optional user-owned title override; read but never written or cleared by this plugin |

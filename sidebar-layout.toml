@@ -21,6 +21,7 @@ rows = [
     { token = "$hs_unknown", fg = "#A8ADB9", dim = false },
     { token = "$hs_unknown_dim", fg = "#A8ADB9", dim = true },
   ],
+  [{ token = "$hs_task", fg = "#A8ADB9", dim = false }, { token = "$hs_task_dim", fg = "#A8ADB9", dim = true }],
   [{ token = "$hs_gap" }],
 ]
 
@@ -44,6 +45,7 @@ agy = [
     { token = "$hs_unknown", fg = "#6EA8FE", dim = false },
     { token = "$hs_unknown_dim", fg = "#A8ADB9", dim = true },
   ],
+  [{ token = "$hs_task", fg = "#A8ADB9", dim = false }, { token = "$hs_task_dim", fg = "#A8ADB9", dim = true }],
   [{ token = "$hs_gap" }],
 ]
 claude = [
@@ -65,6 +67,7 @@ claude = [
     { token = "$hs_unknown", fg = "#A8ADB9", dim = false },
     { token = "$hs_unknown_dim", fg = "#A8ADB9", dim = true },
   ],
+  [{ token = "$hs_task", fg = "#A8ADB9", dim = false }, { token = "$hs_task_dim", fg = "#A8ADB9", dim = true }],
   [{ token = "$hs_gap" }],
 ]
 codex = [
@@ -86,6 +89,7 @@ codex = [
     { token = "$hs_unknown", fg = "#A8ADB9", dim = false },
     { token = "$hs_unknown_dim", fg = "#A8ADB9", dim = true },
   ],
+  [{ token = "$hs_task", fg = "#A8ADB9", dim = false }, { token = "$hs_task_dim", fg = "#A8ADB9", dim = true }],
   [{ token = "$hs_gap" }],
 ]
 hermes = [
@@ -107,5 +111,6 @@ hermes = [
     { token = "$hs_unknown", fg = "#F5A623", dim = false },
     { token = "$hs_unknown_dim", fg = "#A8ADB9", dim = true },
   ],
+  [{ token = "$hs_task", fg = "#A8ADB9", dim = false }, { token = "$hs_task_dim", fg = "#A8ADB9", dim = true }],
   [{ token = "$hs_gap" }],
 ]

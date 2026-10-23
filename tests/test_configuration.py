@@ -43,8 +43,10 @@ command = "my-action"
         for rows in [layout["rows"], *layout["rows_by_agent"].values()]:
             names = [[token if isinstance(token, str) else token["token"] for token in row]
                      for row in rows]
-            self.assertEqual(len(names), 5)
+            self.assertEqual(len(names), 6)
             self.assertNotIn("machine", names[0])
+            # A named agent's task line sits right under its agent row.
+            self.assertEqual(names[4], ["$hs_task", "$hs_task_dim"])
             self.assertEqual(sum(row.count("machine") for row in names), 1)
             agent_row = names[3]
             self.assertEqual(agent_row.index("machine"), agent_row.index("$hs_logo_dim") + 1)

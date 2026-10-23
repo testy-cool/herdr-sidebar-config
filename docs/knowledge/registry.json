@@ -94,6 +94,8 @@
     {"name": "hs_logo_focus", "meaning": "Retired focus-bar token, always cleared by the runtime", "consumed_by": "none", "note": "Selected rows keep the regular icon and prefix; no layout row consumes this token."},
     {"name": "hs_gap", "meaning": "Braille blank row after the last agent of a workspace", "consumed_by": "layout"},
     {"name": "hs_terminals", "meaning": "Names of terminal-only tabs in the workspace", "consumed_by": "layout"},
+    {"name": "hs_task", "meaning": "Task line under a named agent's row, indented under its name", "consumed_by": "layout"},
+    {"name": "hs_task_dim", "meaning": "Dimmed task line for a quiet named agent", "consumed_by": "layout"},
     {"name": "hs_workspace_rank", "meaning": "Hidden 12-digit rank used by the activity agent-view sort", "consumed_by": "view"},
     {"name": "hs_title", "meaning": "User-owned title override; read but never written or cleared", "consumed_by": "user"},
     {"name": "hs_space", "meaning": "Workspace label in Spaces while the workspace is active", "consumed_by": "spaces"},

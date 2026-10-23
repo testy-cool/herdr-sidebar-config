@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from sidebar import IDENTITY_FILE, desired_rows, folder_identity
+from sidebar import BLANK as B, IDENTITY_FILE, desired_rows, folder_identity
 
 
 def agent(pane_id, folder, **extra):
@@ -27,20 +27,24 @@ class FolderIdentityTests(unittest.TestCase):
         return desired_rows(list(panes), [{'workspace_id': 'w1', 'label': 'Demo'}],
                             {'t1': 'main'}, **options)
 
-    def test_icon_and_name_go_before_the_task(self):
+    def test_icon_and_name_fill_the_row_and_the_task_goes_below(self):
         dag = self.folder('dag', 'name = "dag"\nicon = "🔀"\n')
-        self.assertEqual(self.rows(agent('p1', dag))['p1']['hs_idle'],
-                         '○ 🔀 dag · Fix the nightly flow')
+        row = self.rows(agent('p1', dag))['p1']
+        self.assertEqual(row['hs_idle'], '○ 🔀 dag')
+        # Under the name: logo, Herdr's " · ", the mark and the icon come first.
+        self.assertEqual(row['hs_task'], B * 10 + 'Fix the nightly flow')
 
     def test_name_defaults_to_the_folder_and_icon_is_optional(self):
         teo = self.folder('teo', '')
-        self.assertEqual(self.rows(agent('p1', teo))['p1']['hs_idle'],
-                         '○ teo · Fix the nightly flow')
+        row = self.rows(agent('p1', teo))['p1']
+        self.assertEqual(row['hs_idle'], '○ teo')
+        self.assertEqual(row['hs_task'], B * 7 + 'Fix the nightly flow')
 
     def test_folders_without_the_file_are_unchanged(self):
         plain = self.folder('project')
-        self.assertEqual(self.rows(agent('p1', plain))['p1']['hs_idle'],
-                         '○ Fix the nightly flow')
+        row = self.rows(agent('p1', plain))['p1']
+        self.assertEqual(row['hs_idle'], '○ Fix the nightly flow')
+        self.assertIsNone(row['hs_task'])
 
     def test_only_the_agent_process_folder_counts(self):
         dag = self.folder('dag', 'icon = "🔀"\n')
@@ -50,23 +54,40 @@ class FolderIdentityTests(unittest.TestCase):
         self.assertEqual(self.rows(pane)['p1']['hs_idle'], '○ Fix the nightly flow')
         self.assertIsNone(folder_identity({'cwd': dag}))
 
-    def test_a_label_that_is_the_name_is_not_repeated(self):
+    def test_a_label_that_is_the_name_gets_no_task_line(self):
         dag = self.folder('dag', 'icon = "🔀"\n')
-        pane = agent('p1', dag, terminal_title_stripped='', label='Dag')
-        self.assertEqual(self.rows(pane)['p1']['hs_idle'], '○ 🔀 Dag')
+        row = self.rows(agent('p1', dag, terminal_title_stripped='', label='Dag'))['p1']
+        self.assertEqual(row['hs_idle'], '○ 🔀 dag')
+        self.assertIsNone(row['hs_task'])
 
-    def test_a_title_that_starts_with_the_name_is_not_repeated(self):
+    def test_a_title_that_starts_with_the_name_drops_it_from_the_task(self):
         teresa = self.folder('teresa', 'icon = "🧭"\n')
-        named = agent('p1', teresa, terminal_title_stripped='teresa · scrapingevals interview')
-        self.assertEqual(self.rows(named)['p1']['hs_idle'], '○ 🧭 Teresa · scrapingevals interview')
-        # Session titles often spell a hyphenated name with spaces.
+        named = self.rows(agent('p1', teresa, terminal_title_stripped='teresa · scrapingevals interview'))['p1']
+        self.assertEqual(named['hs_idle'], '○ 🧭 teresa')
+        self.assertEqual(named['hs_task'], B * 10 + 'scrapingevals interview')
+        # Session titles often spell a hyphenated name with spaces, and what
+        # is left of "Minion god 12" says nothing.
         hyphenated = self.folder('minion-god', 'icon = "👑"\n')
-        spaced = agent('p3', hyphenated, terminal_title_stripped='minion-god-12')
-        self.assertEqual(self.rows(spaced)['p3']['hs_idle'], '○ 👑 Minion god 12')
+        spaced = self.rows(agent('p3', hyphenated, terminal_title_stripped='minion-god-12'))['p3']
+        self.assertEqual(spaced['hs_idle'], '○ 👑 minion-god')
+        self.assertIsNone(spaced['hs_task'])
         # A word that only begins with the name is still a different word.
         dag = self.folder('dag', 'icon = "🔀"\n')
-        other = agent('p2', dag, terminal_title_stripped='Dagger refactor')
-        self.assertEqual(self.rows(other)['p2']['hs_idle'], '○ 🔀 dag · Dagger refactor')
+        other = self.rows(agent('p2', dag, terminal_title_stripped='Dagger refactor'))['p2']
+        self.assertEqual(other['hs_task'], B * 10 + 'Dagger refactor')
+
+    def test_the_tree_line_carries_on_beside_the_task(self):
+        dag = self.folder('dag', 'icon = "🔀"\n')
+        teo = self.folder('teo', '')
+        panes = [agent('p1', dag), agent('p2', teo),
+                 dict(pane_id='p3', workspace_id='w1', tab_id='t2')]
+        tabs = {'t1': 'main', 't2': 'shell'}
+        rows = desired_rows(panes, [{'workspace_id': 'w1', 'label': 'Demo'}], tabs)
+        self.assertTrue(rows['p1']['hs_logo'].startswith('├─ '))
+        self.assertEqual(rows['p1']['hs_task'], '│' + B * 2 + B * 10 + 'Fix the nightly flow')
+        self.assertEqual(rows['p2']['hs_task'], B * 3 + B * 7 + 'Fix the nightly flow')
+        short = desired_rows(panes, [{'workspace_id': 'w1', 'label': 'Demo'}], tabs, branch_length='short')
+        self.assertEqual(short['p1']['hs_task'], '│' + B + B * 10 + 'Fix the nightly flow')
 
     def test_broken_or_hostile_files_are_contained(self):
         broken = self.folder('broken', 'icon = "unclosed\n')
@@ -100,15 +121,23 @@ class FolderIdentityTests(unittest.TestCase):
         self.assertNotIn('\x9b', name)
         self.assertLessEqual(len(name), 32)
 
-    def test_dimmed_and_working_rows_keep_the_identity(self):
+    def test_dimmed_and_working_rows_keep_both_lines(self):
         dag = self.folder('dag', 'icon = "🔀"\n')
-        rows = self.rows(agent('p1', dag, agent_status='working'), inactive_ids={'w1'})
-        self.assertEqual(rows['p1']['hs_working_dim'], '◔ 🔀 dag · Fix the nightly flow')
+        row = self.rows(agent('p1', dag, agent_status='working'), inactive_ids={'w1'})['p1']
+        self.assertEqual(row['hs_working_dim'], '◔ 🔀 dag')
+        self.assertEqual(row['hs_task_dim'], B * 10 + 'Fix the nightly flow')
+        self.assertIsNone(row['hs_task'])
 
-    def test_identity_wraps_the_pane_name(self):
+    def test_the_pane_name_stays_with_the_task(self):
         dag = self.folder('dag', 'icon = "🔀"\n')
-        rows = self.rows(agent('p1', dag, label='review'), pane_names=True)
-        self.assertEqual(rows['p1']['hs_idle'], '○ 🔀 dag · review - Fix the nightly flow')
+        row = self.rows(agent('p1', dag, label='review'), pane_names=True)['p1']
+        self.assertEqual(row['hs_idle'], '○ 🔀 dag')
+        self.assertEqual(row['hs_task'], B * 10 + 'review - Fix the nightly flow')
+
+    def test_text_logos_shift_the_task_by_their_width(self):
+        dag = self.folder('dag', 'icon = "🔀"\n')
+        row = self.rows(agent('p1', dag, agent='codex'), icons='text')['p1']
+        self.assertEqual(row['hs_task'], B * 11 + 'Fix the nightly flow')
 
 
 if __name__ == '__main__':

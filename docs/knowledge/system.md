@@ -68,6 +68,7 @@ the user, or nothing at all.
 | `hs_logo_focus` | Retired focus-bar token, always cleared; selected rows keep the regular icon and prefix | nothing |
 | `hs_gap` | Braille blank row after the last agent before another workspace | layout |
 | `hs_terminals` | Names of terminal-only tabs in the workspace | layout |
+| `hs_task`, `hs_task_dim` | Task line under an agent named by its folder's `.herdr-agent.toml`, indented under the name | layout |
 | `hs_working`, `hs_blocked`, `hs_done`, `hs_idle`, `hs_unknown` | Exactly one populated with the native status mark and task label | layout |
 | `hs_logo_kimchi` | Replaces `hs_logo` on a bright Kimchi row; Herdr rejects `rows_by_agent` for agents it does not know and caps a row at 16 tokens, so the default rows colour this one token `#FF521D` | layout (default rows) |
 | `hs_*_dim` | Mutually exclusive dim twins of group/tab/logo/status tokens | layout |

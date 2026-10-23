@@ -194,9 +194,19 @@ icon = "🔀"
 ```
 
 Both fields are optional. Without `name`, the folder's name is used. The row
-then reads `○ 🔀 dag · <task>`, after the provider icon. Only the folder the
-agent process runs in counts, not the folder its shell started in. The next
-refresh, such as a focus change, picks up a new or edited file.
+then shows the provider icon, the status, the icon and the name, and the task
+moves to a line of its own under the name, so a narrow sidebar does not cut it
+off:
+
+```text
+├─ ✻ · ○ 🔀 dag
+│          Windmill fetch_corpus flow
+```
+
+A title that starts with the agent's name drops it from the task line. Only
+the folder the agent process runs in counts, not the folder its shell started
+in. The next refresh, such as a focus change, picks up a new or edited file.
+Agents without the file keep their single row.
 
 The icon can be any emoji or symbol. Single emoji with their own colour, such
 as 🔀 or 🧪, line up best, because terminals agree on their width. Emoji built

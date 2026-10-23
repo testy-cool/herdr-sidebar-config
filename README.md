@@ -21,8 +21,8 @@ Titles and states are demonstration data; the plugin and rendering are real.
 - **Read the task.** Uses native conversation titles and local fallbacks—not
   another model call.
 - **Name your agents.** If you keep one folder per agent, a small
-  `.herdr-agent.toml` in a folder puts that agent's icon and name before its
-  task. [Name an agent by its folder →](docs/setup.md#name-an-agent-by-its-folder)
+  `.herdr-agent.toml` in a folder puts that agent's icon and name on its row,
+  with its task on a line below. [Name an agent by its folder →](docs/setup.md#name-an-agent-by-its-folder)
 - **Recognize Antigravity (AGY), Hermes and Kimchi.** Their own icons and labels
   replace the generic diamond; AGY uses blue agent text and Hermes a warm amber mark.
   Kimchi has to report itself to Herdr first; see [setup](docs/setup.md#kimchi).
