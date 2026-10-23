@@ -1,10 +1,9 @@
 """One scheduler: quiet deadlines plus optional, working-only animation frames."""
 import os
 from pathlib import Path
+import subprocess
 import sys
 import time
-
-from host import Lock, WakeListener, spawn_detached, wake
 
 
 def code_stamp(root=Path(__file__).resolve().parent):
@@ -19,9 +18,40 @@ def code_stamp(root=Path(__file__).resolve().parent):
     return stamp
 
 
-def code_updated(started, stamp, now):
-    """True once the code differs from the start and has not changed for a second."""
-    return stamp != started and all(now - mtime / 1e9 >= 1 for _, _, mtime in stamp)
+# Taken before any other plugin module loads, so a change made while this
+# scheduler starts still counts as newer than the code it runs.
+STARTED = code_stamp() if __name__ == "__main__" else None
+
+from host import Lock, WakeListener, spawn_detached, wake  # noqa: E402
+
+
+class CodeWatch:
+    """Notices that the plugin's code changed and then stayed the same.
+
+    Setup links the plugin from its checkout, so a git pull changes the code
+    under a long-lived scheduler. The time is the monotonic clock, so a wall
+    clock correction cannot hold a handover back.
+    """
+
+    def __init__(self, started, now):
+        self.started = self.seen = started
+        self.since = now
+        self.rejected = None
+
+    def settled(self, stamp, now):
+        if stamp != self.seen:
+            self.seen, self.since = stamp, now
+            return False
+        return stamp not in (self.started, self.rejected) and now - self.since >= 1
+
+
+def imports_cleanly(root=Path(__file__).resolve().parent):
+    """Whether the updated checkout loads, so a broken one never takes over."""
+    try:
+        return subprocess.run([sys.executable, "-c", "import deadline, sidebar, animation"],
+                              cwd=root, capture_output=True, timeout=30).returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        return False
 
 
 def ensure_timer(state, start=True):
@@ -52,19 +82,23 @@ def run():
     # newest state first.
     with WakeListener(state) as listener:
         next_frame = time.monotonic() + INTERVAL
-        # Setup links the plugin from its checkout, so a git pull changes the
-        # code under this long-lived process. Once the new code has settled,
-        # hand the deadlines to a fresh scheduler that runs it.
-        started, checked = code_stamp(), time.monotonic()
+        # Once updated code has settled and loads, hand the deadlines to a
+        # fresh scheduler that runs it. A checkout that fails to load is
+        # skipped until it changes again.
+        watch = CodeWatch(STARTED or code_stamp(), time.monotonic())
+        checked = time.monotonic()
         while True:
             if time.monotonic() - checked >= 1:
                 checked = time.monotonic()
-                if code_updated(started, code_stamp(), time.time()):
-                    print("Sidebar scheduler: plugin code changed, restarting", file=sys.stderr, flush=True)
-                    listener.close()
-                    timer.release()
-                    spawn_detached([sys.executable, str(Path(__file__).resolve())], state / "deadline.log")
-                    return
+                stamp = code_stamp()
+                if watch.settled(stamp, checked):
+                    if imports_cleanly():
+                        print("Sidebar scheduler: plugin code changed, restarting", file=sys.stderr, flush=True)
+                        listener.close()
+                        timer.release()
+                        spawn_detached([sys.executable, str(Path(__file__).resolve())], state / "deadline.log")
+                        return
+                    watch.rejected = stamp
             with Lock(state / "group-headers.lock"):
                 cached = read_state(state / "activity.json")
                 deadline = cached.get("next_deadline")
