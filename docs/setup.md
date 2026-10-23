@@ -194,14 +194,26 @@ icon = "🔀"
 ```
 
 Both fields are optional. Without `name`, the folder's name is used. The row
-then reads `○ 🔀 dag · <task>`, after the provider icon. Only the folder the
-agent process runs in counts, not the folder its shell started in. The next
-refresh, such as a focus change, picks up a new or edited file.
+then shows the provider icon, the status, the icon and the name, and the task
+moves to a line of its own under the name, so a narrow sidebar does not cut it
+off:
 
-The icon can be any emoji or symbol. Single emoji with their own colour, such
-as 🔀 or 🧪, line up best, because terminals agree on their width. Emoji built
-from several characters, such as flags or 👩‍💻, may be measured differently by
-Herdr and the terminal. Names are cut at 32 characters and control characters
+```text
+├─ ✻ · ○ 🔀 dag
+│          Windmill fetch_corpus flow
+```
+
+A title that starts with the agent's name drops it from the task line. Only
+the folder the agent process runs in counts, not the folder its shell started
+in. The next refresh, such as a focus change, picks up a new or edited file.
+Agents without the file keep their single row.
+
+The icon can be any emoji or symbol. A one-colour symbol from a Nerd Font takes
+the row's colour and fades with it; an emoji keeps its own colours. The task
+line is indented by the width Herdr gives the icon, so emoji joined from several
+characters, such as 👩‍💻, still line up. With other machines connected, Herdr
+adds each row's machine name between the provider icon and the status, and the
+task line, which cannot see that name, starts that much further left. Names are cut at 32 characters and control characters
 are removed, since any folder an agent runs in can carry this file. A file over
 4 KB, or anything that is not a regular file, is ignored.
 

@@ -7,6 +7,7 @@ import stat
 import sys
 import time
 import tomllib
+import unicodedata
 from pathlib import Path
 from host import Lock, entry
 from inactivity import update_inactivity
@@ -190,19 +191,54 @@ def folder_identity(pane):
     return _display_text(data.get("icon"), 8), name
 
 
-def with_folder_identity(pane, label):
-    """Prefix the agent folder's icon and name, when its folder has a file."""
-    identity = folder_identity(pane)
-    if not identity:
-        return label
+def named_row(identity, label):
+    """Split a named agent's row into its icon and name, and its task line."""
     icon, name = identity
     # Some session titles already start with the agent's name ("teresa · ...",
-    # or "Minion god 12" for minion-god).
+    # or "Minion god 12" for minion-god); the task line leaves it out.
     normalize = lambda text: re.sub(r"[-_]", " ", text).casefold()
-    head, key = normalize(label), normalize(name)
-    named = head.startswith(key) and (len(head) == len(key) or not head[len(key)].isalnum())
-    text = label if named else name + " · " + label
-    return icon + " " + text if icon else text
+    start, rest = label[:len(name)], label[len(name):]
+    if normalize(start) == normalize(name) and not rest[:1].isalnum():
+        label = rest.lstrip(" ·-–—:|")
+        # The "12" left of "Minion god 12" is a session number, so no task line.
+        if re.fullmatch(r"\d*", label):
+            label = ""
+    return (icon + " " + name if icon else name), label
+
+
+# Characters that join the one before them into a single picture: variation
+# selectors, the zero-width joiner, skin tones, keycaps and tags. Combining
+# marks of any script join too (unicodedata.combining).
+_JOINS = re.compile("[\ufe00-\ufe0f\u200d\u20e3\U0001f3fb-\U0001f3ff\U000e0020-\U000e007f]")
+
+
+def _cells(text):
+    """Terminal cells a short icon or logo takes, as Herdr's unicode-width counts.
+
+    An emoji that is wide on its own, made wide by U+FE0F (❤️) or joined from
+    several (👩‍💻) takes two cells; U+FE0E asks for the one-cell text form.
+    Other characters take one cell, and their combining marks none.
+    """
+    clusters = []
+    for char in text:
+        joins = _JOINS.match(char) or unicodedata.combining(char)
+        if clusters and (joins or clusters[-1][-1] == "\u200d"):
+            clusters[-1] += char
+        elif not joins:
+            clusters.append(char)
+    def width(cluster):
+        if "\ufe0e" in cluster:
+            return 1
+        if "\u200d" in cluster or "\u20e3" in cluster:
+            return 2
+        if "\ufe0f" in cluster and ord(cluster[0]) >= 0x2000:
+            return 2
+        return 2 if unicodedata.east_asian_width(cluster[0]) in "WF" else 1
+    return sum(width(c) for c in clusters)
+
+
+# Herdr puts " · " between the logo token and the status token.
+TOKEN_GAP = 3
 
 
 def desired_headers(panes, workspaces):
@@ -234,7 +270,7 @@ def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset()
     for pane in panes:
         heading = headers[pane["pane_id"]]
         values = {"hs_group": heading, "hs_tab": None, "hs_logo_focus": None,
-                  "hs_gap": None, "hs_logo": None, "hs_terminals": None}
+                  "hs_gap": None, "hs_logo": None, "hs_terminals": None, "hs_task": None}
         values.update({f"hs_{state}": None for state in STATES})
         if pane.get("agent"):
             if heading and previous is not None:
@@ -255,9 +291,11 @@ def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset()
                 # Continuation rows start two cells to the right of first rows.
                 values["hs_tab"] = ("" if heading else BLANK * 2) + tab_label
             logo = logo_for(pane["agent"], icons)
+            branch = ""
             if show_tree:
                 prefix = "" if first_in_tab else BLANK * 2
-                prefix += ("└" if last_in_tab else "├") + (" " if branch_length == "short" else "─ ")
+                branch = ("└" if last_in_tab else "├") + (" " if branch_length == "short" else "─ ")
+                prefix += branch
             else:
                 prefix = "" if heading else BLANK * 2
             values["hs_logo"] = prefix + BLANK + logo
@@ -268,13 +306,26 @@ def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset()
             label = task_label(pane, tabs)
             if pane_names:
                 label = with_pane_name(pane, label)
-            label = with_folder_identity(pane, label)
+            identity = folder_identity(pane)
+            if identity:
+                # A named agent's row holds its icon and name; the task goes on
+                # the line below, under the name. That line is always a
+                # continuation row, so it needs no first-row offset, and the
+                # tree's line carries on beside it unless this agent is last.
+                label, task = named_row(identity, label)
+                if task:
+                    tree = ("" if not branch else
+                            ("│" if not last_in_tab else BLANK) + BLANK * (len(branch) - 1))
+                    under = 1 + _cells(logo) + TOKEN_GAP + _cells(mark) + 1
+                    if identity[0]:
+                        under += _cells(identity[0]) + 1
+                    values["hs_task"] = tree + BLANK * under + task
             values[f"hs_{status}"] = mark + " " + label
             previous = pane["pane_id"]
         dim_group = pane["workspace_id"] in inactive_ids
         dim_agent = dim_group or pane["pane_id"] in inactive_pane_ids
         # Keep shared headings bright while another agent is active.
-        for key in ["hs_group", "hs_tab", "hs_logo", *[f"hs_{s}" for s in STATES]]:
+        for key in ["hs_group", "hs_tab", "hs_logo", "hs_task", *[f"hs_{s}" for s in STATES]]:
             dim = dim_group if key in {"hs_group", "hs_tab"} else dim_agent
             values[key + "_dim"] = values[key] if dim else None
             if dim:
