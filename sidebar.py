@@ -196,8 +196,10 @@ def with_folder_identity(pane, label):
     if not identity:
         return label
     icon, name = identity
-    # Some session titles already start with the agent's name ("teresa · ...").
-    head, key = label.casefold(), name.casefold()
+    # Some session titles already start with the agent's name ("teresa · ...",
+    # or "Minion god 12" for minion-god).
+    normalize = lambda text: re.sub(r"[-_]", " ", text).casefold()
+    head, key = normalize(label), normalize(name)
     named = head.startswith(key) and (len(head) == len(key) or not head[len(key)].isalnum())
     text = label if named else name + " · " + label
     return icon + " " + text if icon else text

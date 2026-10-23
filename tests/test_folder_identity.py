@@ -59,6 +59,10 @@ class FolderIdentityTests(unittest.TestCase):
         teresa = self.folder('teresa', 'icon = "🧭"\n')
         named = agent('p1', teresa, terminal_title_stripped='teresa · scrapingevals interview')
         self.assertEqual(self.rows(named)['p1']['hs_idle'], '○ 🧭 Teresa · scrapingevals interview')
+        # Session titles often spell a hyphenated name with spaces.
+        hyphenated = self.folder('minion-god', 'icon = "👑"\n')
+        spaced = agent('p3', hyphenated, terminal_title_stripped='minion-god-12')
+        self.assertEqual(self.rows(spaced)['p3']['hs_idle'], '○ 👑 Minion god 12')
         # A word that only begins with the name is still a different word.
         dag = self.folder('dag', 'icon = "🔀"\n')
         other = agent('p2', dag, terminal_title_stripped='Dagger refactor')
