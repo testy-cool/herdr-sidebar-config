@@ -183,7 +183,10 @@ def with_folder_identity(pane, label):
     if not identity:
         return label
     icon, name = identity
-    text = name if label.casefold() == name.casefold() else name + " · " + label
+    # Some session titles already start with the agent's name ("teresa · ...").
+    head, key = label.casefold(), name.casefold()
+    named = head.startswith(key) and (len(head) == len(key) or not head[len(key)].isalnum())
+    text = label if named else name + " · " + label
     return icon + " " + text if icon else text
 
 

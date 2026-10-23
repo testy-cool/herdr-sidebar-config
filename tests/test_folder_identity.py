@@ -52,7 +52,16 @@ class FolderIdentityTests(unittest.TestCase):
     def test_a_label_that_is_the_name_is_not_repeated(self):
         dag = self.folder('dag', 'icon = "🔀"\n')
         pane = agent('p1', dag, terminal_title_stripped='', label='Dag')
-        self.assertEqual(self.rows(pane)['p1']['hs_idle'], '○ 🔀 dag')
+        self.assertEqual(self.rows(pane)['p1']['hs_idle'], '○ 🔀 Dag')
+
+    def test_a_title_that_starts_with_the_name_is_not_repeated(self):
+        teresa = self.folder('teresa', 'icon = "🧭"\n')
+        named = agent('p1', teresa, terminal_title_stripped='teresa · scrapingevals interview')
+        self.assertEqual(self.rows(named)['p1']['hs_idle'], '○ 🧭 Teresa · scrapingevals interview')
+        # A word that only begins with the name is still a different word.
+        dag = self.folder('dag', 'icon = "🔀"\n')
+        other = agent('p2', dag, terminal_title_stripped='Dagger refactor')
+        self.assertEqual(self.rows(other)['p2']['hs_idle'], '○ 🔀 dag · Dagger refactor')
 
     def test_broken_or_hostile_files_are_contained(self):
         broken = self.folder('broken', 'icon = "unclosed\n')
