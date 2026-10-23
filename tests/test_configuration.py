@@ -46,11 +46,14 @@ command = "my-action"
             self.assertEqual(len(names), 6)
             self.assertNotIn("machine", names[0])
             # A named agent's task line sits right under its agent row.
-            self.assertEqual(names[4], ["$hs_task", "$hs_task_dim"])
+            self.assertEqual(names[4], ["$hs_row_task", "$hs_row_task_dim"])
             self.assertEqual(sum(row.count("machine") for row in names), 1)
+            # Status first, then the machine label, then the provider logo last.
             agent_row = names[3]
-            self.assertEqual(agent_row.index("machine"), agent_row.index("$hs_logo_dim") + 1)
-            self.assertLess(agent_row.index("machine"), agent_row.index("$hs_working"))
+            self.assertEqual(agent_row[0], "$hs_row_working")
+            self.assertEqual(agent_row.index("machine"), agent_row.index("$hs_row_unknown_dim") + 1)
+            self.assertLess(agent_row.index("machine"), agent_row.index("$hs_row_logo"))
+            self.assertEqual(agent_row[-1], "$hs_row_logo_dim")
 
     def test_machine_token_requires_herdr_090(self):
         manifest = Path(__file__).resolve().parents[1] / "herdr-plugin.toml"

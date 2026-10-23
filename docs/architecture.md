@@ -47,8 +47,12 @@ first agent. They remain terminals; no fake agent identity is reported. A
 workspace with no detected agents at all has no anchor in Herdr's Agents panel
 and remains visible in Spaces.
 
+An agent's first line leads with its status mark and ends with the provider
+logo; Herdr keeps a trailing piece when it cuts a long line, so the logo stays
+visible. A named agent's task gets its own line, starting under the icon.
+
 A pane tagged `hs_parent=<pane id>` that comes right after that agent's rows in
-the same tab is drawn one level in, its branch under the parent's logo. Herdr's
+the same tab is drawn one level in, its branch under the parent's status mark. Herdr's
 own order is layout order, and a pane split from its opener lands right after
 it, so no reordering is needed; a tag whose parent is gone or not directly
 above is ignored. See [show who opened an agent](setup.md#show-who-opened-an-agent).
@@ -72,7 +76,8 @@ analysis or a model call.
 
 When the folder an agent process runs in (`foreground_cwd`, not the shell's
 `cwd`) holds `.herdr-agent.toml`, its `icon` and `name` fill the agent's row and
-whichever title was chosen moves to an `hs_task` line under the name. See [name an agent by its folder](setup.md#name-an-agent-by-its-folder).
+whichever title was chosen moves to an task line under the icon (`hs_row_task`). With pane names on, the pane's own name
+sits beside the agent's name. See [name an agent by its folder](setup.md#name-an-agent-by-its-folder).
 
 Saved conversation context extends these exact-session reads to generic tab
 names and a read-only popup. Hibernate records link sleeping conversations to
@@ -87,11 +92,12 @@ Publisher: `plugin:testy-cool.herdr-sidebar`.
 | --- | --- |
 | `hs_group` | Workspace heading on its first agent |
 | `hs_tab` | Tab heading on its first agent, when multiple tabs exist |
-| `hs_logo` | Indentation, optional branch, and provider icon/text |
-| `hs_working`, `hs_blocked`, `hs_done`, `hs_idle`, `hs_unknown` | Exactly one populated with the native status symbol and task label |
+| `hs_row_working`, `hs_row_blocked`, `hs_row_done`, `hs_row_idle`, `hs_row_unknown` | First line of an agent: exactly one holds indentation, branch, the native status symbol and the label (a named agent's icon, name and pane name) |
+| `hs_row_logo` | Provider icon/text at the end of the first line |
 | `hs_gap` | Blank row after the last agent before another workspace |
 | `hs_terminals` | Names of terminal-only tabs in this workspace |
-| `hs_task` | Task line under a named agent's row, indented under its name |
+| `hs_row_task` | Task line under a named agent's row, starting under its icon |
+| `hs_logo`, `hs_<status>`, `hs_task` | The same rows in the older logo-first layout, still published so an install that has not rerun setup keeps working |
 | `hs_*_dim` | Mutually exclusive dim versions of agent/group display tokens |
 | `hs_space`, `hs_space_dim` | Mutually exclusive workspace labels in Spaces |
 | `hs_title` | Optional user-owned title override; read but never written or cleared by this plugin |

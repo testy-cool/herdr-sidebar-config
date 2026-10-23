@@ -20,6 +20,9 @@ Titles and states are demonstration data; the plugin and rendering are real.
   the plugin on the other machine too if you want its task labels and grouping.
 - **Read the task.** Uses native conversation titles and local fallbacks—not
   another model call.
+- **Status first.** Each agent's line starts with its status mark and ends
+  with its provider icon, so the marks line up in one column and the task
+  keeps the width.
 - **Name your agents.** If you keep one folder per agent, a small
   `.herdr-agent.toml` in a folder puts that agent's icon and name on its row,
   with its task on a line below. [Name an agent by its folder →](docs/setup.md#name-an-agent-by-its-folder)

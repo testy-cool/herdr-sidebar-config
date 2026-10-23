@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch
 from animation import STYLES, cache_rows, glyph, publish_frame
 from preferences import validate
+from sidebar import desired_rows
 
 
 class AnimationTests(unittest.TestCase):
@@ -23,7 +24,25 @@ class AnimationTests(unittest.TestCase):
         panes = [{'pane_id': p, 'agent': 'codex', 'agent_status': s}
                  for p, s in [('p1', 'working'), ('p2', 'idle')]]
         rows = cache_rows(panes, {'p1': {'hs_working': '⠋ Build search'}, 'p2': {}}, 'orbit')
-        self.assertEqual(rows, [{'pane_id': 'p1', 'agent': 'codex', 'token': 'hs_working', 'text': 'Build search', 'style': 'orbit'}])
+        self.assertEqual(rows, [{'pane_id': 'p1', 'agent': 'codex', 'token': 'hs_working', 'lead': '', 'text': 'Build search', 'style': 'orbit'}])
+
+    @patch('animation.call')
+    def test_frames_keep_the_tree_and_label_of_generated_rows(self, call):
+        # Both layouts' working tokens, built by the real row generator.
+        panes = [dict(pane_id=p, workspace_id='w1', tab_id=t, agent='claude', agent_status='working',
+                      terminal_title_stripped='Build search') for p, t in [('p1', 't1'), ('p2', 't1')]]
+        panes.append(dict(pane_id='s1', workspace_id='w1', tab_id='t2'))
+        for length in ('standard', 'short'):
+            desired = desired_rows(panes, [{'workspace_id': 'w1', 'label': 'Demo'}], {'t1': 'One', 't2': 'Two'},
+                                   working_glyph=glyph(0), branch_length=length)
+            rows = cache_rows(panes, desired)
+            self.assertEqual(len(rows), 4)
+            call.return_value = {'plugins': [{'plugin_id': 'testy-cool.herdr-sidebar', 'enabled': True}]}
+            for row in rows:
+                publish_frame([row], .125)
+                frame = desired[row['pane_id']][row['token']].replace(glyph(0), glyph(.125), 1)
+                self.assertEqual(call.call_args.args[1]['tokens'], {row['token']: frame})
+                self.assertNotEqual(frame, desired[row['pane_id']][row['token']])
 
     @patch('animation.call')
     def test_frames_only_patch_working_token_and_stop_if_disabled(self, call):
