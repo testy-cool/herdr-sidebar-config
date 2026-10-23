@@ -23,6 +23,9 @@ Titles and states are demonstration data; the plugin and rendering are real.
 - **Name your agents.** If you keep one folder per agent, a small
   `.herdr-agent.toml` in a folder puts that agent's icon and name on its row,
   with its task on a line below. [Name an agent by its folder →](docs/setup.md#name-an-agent-by-its-folder)
+- **See who opened whom.** An agent opened by another agent, tagged with
+  `hs_parent`, is drawn one level in under it.
+  [Show who opened an agent →](docs/setup.md#show-who-opened-an-agent)
 - **Recognize Antigravity (AGY), Hermes and Kimchi.** Their own icons and labels
   replace the generic diamond; AGY uses blue agent text and Hermes a warm amber mark.
   Kimchi has to report itself to Herdr first; see [setup](docs/setup.md#kimchi).

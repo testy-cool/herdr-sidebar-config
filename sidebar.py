@@ -255,6 +255,31 @@ def desired_headers(panes, workspaces):
     return result
 
 
+def child_parents(panes, groups):
+    """Map each agent pane to the agent it is drawn under, or None.
+
+    Herdr does not record which pane opened another, so the opener tags the
+    new pane with hs_parent=<its own pane id>. The pane is drawn under that
+    agent only when it comes right after the agent's own rows in the same
+    tab; a split from the opener lands there. Otherwise the tag is ignored.
+    """
+    tags = {pane["pane_id"]: (pane.get("tokens") or {}).get("hs_parent") for pane in panes}
+    parents = {}
+    for workspace_tabs in groups.values():
+        for ids in workspace_tabs.values():
+            open_rows = []
+            for pane_id in ids:
+                parent = tags.get(pane_id)
+                if parent in open_rows:
+                    del open_rows[open_rows.index(parent) + 1:]
+                else:
+                    parent = None
+                    open_rows.clear()
+                parents[pane_id] = parent
+                open_rows.append(pane_id)
+    return parents
+
+
 def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset(), working_glyph="◔", branch_length="standard", pane_names=False, inactive_pane_ids=frozenset()):
     headers = desired_headers(panes, workspaces)
     groups = {}
@@ -265,6 +290,10 @@ def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset()
             groups.setdefault(pane["workspace_id"], {}).setdefault(
                 pane.get("tab_id"), []
             ).append(pane["pane_id"])
+    parents = child_parents(panes, groups)
+    # Per pane: its branch with everything left of it, and what its children's
+    # rows and its task line repeat in that space (the tree lines carrying on).
+    shapes = {}
     previous = None
     result = {}
     for pane in panes:
@@ -285,20 +314,28 @@ def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset()
             show_tree = len(tab_ids[pane["workspace_id"]]) > 1
             siblings = workspace_tabs[tab_id]
             first_in_tab = pane["pane_id"] == siblings[0]
-            last_in_tab = pane["pane_id"] == siblings[-1]
+            parent = parents[pane["pane_id"]]
+            # Last among the agents at its own level: the tab's top-level
+            # agents, or the children of the same parent.
+            last = pane["pane_id"] == [p for p in siblings if parents[p] == parent][-1]
+            has_children = pane["pane_id"] in parents.values()
             if show_tree and first_in_tab:
                 tab_label = tabs.get(tab_id) or "tab"
                 # Continuation rows start two cells to the right of first rows.
                 values["hs_tab"] = ("" if heading else BLANK * 2) + tab_label
             logo = logo_for(pane["agent"], icons)
+            # A child's branch starts under its parent's logo.
+            base = shapes[parent][1] + BLANK if parent else ""
             branch = ""
+            if show_tree or parent:
+                branch = ("└" if last else "├") + (" " if branch_length == "short" else "─ ")
+            carry = ("│" if not last else BLANK) + BLANK * (len(branch) - 1) if branch else ""
+            shapes[pane["pane_id"]] = (base + branch, base + carry)
             if show_tree:
                 prefix = "" if first_in_tab else BLANK * 2
-                branch = ("└" if last_in_tab else "├") + (" " if branch_length == "short" else "─ ")
-                prefix += branch
             else:
                 prefix = "" if heading else BLANK * 2
-            values["hs_logo"] = prefix + BLANK + logo
+            values["hs_logo"] = prefix + base + branch + BLANK + logo
             status = pane.get("agent_status", "unknown")
             if status not in STATES:
                 status = "unknown"
@@ -310,16 +347,17 @@ def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset()
             if identity:
                 # A named agent's row holds its icon and name; the task goes on
                 # the line below, under the name. That line is always a
-                # continuation row, so it needs no first-row offset, and the
-                # tree's line carries on beside it unless this agent is last.
+                # continuation row, so it needs no first-row offset. The tree's
+                # lines carry on beside it, and a line drops from the logo to
+                # this agent's children.
                 label, task = named_row(identity, label)
                 if task:
-                    tree = ("" if not branch else
-                            ("│" if not last_in_tab else BLANK) + BLANK * (len(branch) - 1))
                     under = 1 + _cells(logo) + TOKEN_GAP + _cells(mark) + 1
                     if identity[0]:
                         under += _cells(identity[0]) + 1
-                    values["hs_task"] = tree + BLANK * under + task
+                    values["hs_task"] = (shapes[pane["pane_id"]][1] + BLANK
+                                         + ("│" if has_children else BLANK)
+                                         + BLANK * (under - 2) + task)
             values[f"hs_{status}"] = mark + " " + label
             previous = pane["pane_id"]
         dim_group = pane["workspace_id"] in inactive_ids
