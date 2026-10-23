@@ -7,34 +7,31 @@ from sidebar import task_label, desired_rows, changed_tokens
 
 
 class SidebarRowsTests(unittest.TestCase):
-    def test_working_agent_uses_latest_meaningful_codex_task(self):
+    def test_working_agent_shows_its_chats_title_not_its_latest_message(self):
         with tempfile.TemporaryDirectory() as tmp:
-            history = Path(tmp) / ".codex" / "history.jsonl"
-            history.parent.mkdir()
-            history.write_text("\n".join([
-                json.dumps({
-                    "session_id": "session-1",
-                    "ts": 1,
-                    "text": "[Image #1] Integrate the worker commits and run the installed Mac acceptance.",
-                }),
-                "not valid json",
-                json.dumps({
-                    "session_id": "session-1",
-                    "ts": 2,
-                    "text": "How's it going?",
-                }),
+            # The latest message is only a pasted block; the chat's newest
+            # generated title says what the work is. The shell started in
+            # another agent's folder, so the transcript is under the agent's own.
+            (Path(tmp) / ".claude").mkdir()
+            (Path(tmp) / ".claude/history.jsonl").write_text(json.dumps(
+                {"sessionId": "session-1", "display": "[Pasted text #1 +14 lines]"}) + "\n")
+            transcript = Path(tmp) / ".claude/projects/-x-agents-oana/session-1.jsonl"
+            transcript.parent.mkdir(parents=True)
+            transcript.write_text("\n".join(json.dumps(r) for r in [
+                {"type": "ai-title", "aiTitle": "Review sidebar layouts", "sessionId": "session-1"},
+                {"type": "user", "message": {"content": "[Pasted text #1 +14 lines]"}, "sessionId": "session-1"},
+                {"type": "ai-title", "aiTitle": "Recommend a sidebar layout", "sessionId": "session-1"},
             ]) + "\n")
             pane = {
-                "agent": "codex",
+                "agent": "claude",
                 "agent_status": "working",
-                "terminal_title_stripped": "augmented-wolf",
+                "cwd": "/x/agents/minion-god",
+                "foreground_cwd": "/x/agents/oana",
+                "terminal_title_stripped": "Claude Code",
                 "agent_session": {"kind": "id", "value": "session-1"},
             }
-            with patch("sidebar.Path.home", return_value=Path(tmp)):
-                self.assertEqual(
-                    task_label(pane, {}),
-                    "Integrate the worker commits and run the installed Mac acceptance",
-                )
+            with patch("sidebar.Path.home", return_value=Path(tmp)), patch.dict("os.environ", {}, clear=True):
+                self.assertEqual(task_label(pane, {}), "Recommend a sidebar layout")
 
     def test_task_ignores_session_path_and_vague_followup(self):
         pane = {"agent": "codex", "terminal_title_stripped":

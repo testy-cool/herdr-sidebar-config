@@ -66,13 +66,14 @@ The outer workspace-to-tab connection has no branch. Under each tab, agents use
 column while preserving indentation. A workspace with one tab has neither tab headings nor branches.
 The tree is presentational, with native Herdr row selection and navigation.
 
-Titles prefer a user `hs_title` token, then a native exact-session name from
-Codex's read-only SQLite/index, Claude's name/title records, or Pi's saved
-session_info. Project-only and trivial names are rejected. For a working Codex or Claude pane with a
-native session ID, the plugin scans at most the final 512 KiB of that provider's
-local history and selects its latest meaningful user instruction. Malformed
-records, injected instruction headers, screenshot markers, and vague follow-ups
-are skipped. Other cases use the existing terminal title, then the herdr agent
+Titles prefer a user `hs_title` token, then the chat's own title: a native
+exact-session name from Codex's read-only SQLite/index, Claude's newest
+name/title records (an explicit title, else its generated `ai-title`) in the
+final 512 KiB of the session transcript, or Pi's saved session_info. Claude's
+transcript is looked up under both the shell's folder and the agent process's
+own. Project-only and trivial names are rejected. The latest user message is
+not used: it is often a one-word answer or a pasted block. Other cases use the
+existing terminal title, then the herdr agent
 name, then tab and provider fallbacks. A terminal title that only names the
 pane's own directory (Pi's fixed `π - <cwd>`), either the shell's or the agent
 process's, is refused, because the space row already shows where the agent is.

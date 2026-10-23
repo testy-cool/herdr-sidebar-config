@@ -23,66 +23,11 @@ BLANK = "\u2800"
 # 16 tokens, so an agent that reports itself gets one accent token for its mark.
 ACCENT_LOGOS = {"kimchi": "hs_logo_kimchi"}
 ROW_ACCENT_LOGOS = {"kimchi": "hs_row_logo_kimchi"}
-HISTORY = {
-    "codex": (".codex/history.jsonl", "session_id", "text"),
-    "claude": (".claude/history.jsonl", "sessionId", "display"),
-}
 VAGUE = re.compile(
     r"^(yes|okay|ok|go ahead|go on|continue|nice|thank|where we at|are you still|"
     r"how(?:'s| is) it going|also i like)\b",
     re.I,
 )
-
-
-def _task_text(value):
-    if not isinstance(value, str):
-        return None
-    for raw in value.splitlines():
-        text = re.sub(r"\s+", " ", raw).strip().lstrip("#>*- ")
-        # Claude Code's stand-ins for a pasted screenshot or block of text.
-        text = re.sub(r"^(?:\[(?:Image #\d+|Pasted text #\d+(?: \+\d+ lines?)?)\]\s*)+", "", text, flags=re.I)
-        if not text or text.startswith(("AGENTS.md instructions", "<environment_context", "<INSTRUCTIONS", "<skill")):
-            continue
-        if VAGUE.match(text):
-            continue
-        text = re.sub(r"^(?:can|could|would) (?:you|we) (?:please )?", "", text, flags=re.I)
-        return text[:96].rstrip(" ,.;:-")
-    return None
-
-
-def _reverse_history(path, max_bytes=512 * 1024):
-    try:
-        with path.open("rb") as stream:
-            end = stream.seek(0, os.SEEK_END)
-            start = max(0, end - max_bytes)
-            stream.seek(start)
-            data = stream.read()
-    except OSError:
-        return
-    if start:
-        data = data.split(b"\n", 1)[-1]
-    for raw in reversed(data.splitlines()):
-        yield raw.decode("utf-8", "replace")
-
-
-def latest_history_task(pane):
-    source = HISTORY.get(pane.get("agent"))
-    session = pane.get("agent_session") or {}
-    session_id = session.get("value") if isinstance(session, dict) else None
-    if not source or not session_id:
-        return None
-    relative_path, session_key, text_key = source
-    for line in _reverse_history(Path.home() / relative_path):
-        try:
-            record = json.loads(line)
-        except (json.JSONDecodeError, TypeError):
-            continue
-        if not isinstance(record, dict) or record.get(session_key) != session_id:
-            continue
-        text = _task_text(record.get(text_key))
-        if text:
-            return text
-    return None
 
 
 # Terminal titles of the form "<brand> <separator> <directory>": Pi sets
@@ -117,13 +62,12 @@ def described_task(pane):
     saved = pane.get("saved_context")
     if isinstance(saved, dict) and saved.get("title") and not saved.get("detached"):
         return saved["title"]
+    # The chat's own title: Claude's newest generated title, or the session
+    # name Codex and Pi keep. It says what the work is, where the latest
+    # message often says only "yes" or carries a pasted block.
     native = activity_title(pane)
     if native:
         return native
-    if pane.get("agent_status") == "working":
-        task = latest_history_task(pane)
-        if task:
-            return task[:1].upper() + task[1:]
     raw = pane.get("terminal_title_stripped") or ""
     parts = [p.strip().rstrip(".… ") for p in raw.split(" | ")]
     candidates = [p for p in parts if p and not p.startswith(("[", "~/", "/", "<"))
