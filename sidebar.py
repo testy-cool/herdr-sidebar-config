@@ -22,6 +22,7 @@ BLANK = "\u2800"
 # Herdr accepts rows_by_agent only for agents it knows, and a row holds at most
 # 16 tokens, so an agent that reports itself gets one accent token for its mark.
 ACCENT_LOGOS = {"kimchi": "hs_logo_kimchi"}
+ROW_ACCENT_LOGOS = {"kimchi": "hs_row_logo_kimchi"}
 HISTORY = {
     "codex": (".codex/history.jsonl", "session_id", "text"),
     "claude": (".claude/history.jsonl", "sessionId", "display"),
@@ -294,13 +295,18 @@ def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset()
     # Per pane: its branch with everything left of it, and what its children's
     # rows and its task line repeat in that space (the tree lines carrying on).
     shapes = {}
+    # The same space in the status-first rows, where a child's branch starts
+    # under its parent's status mark instead of its logo.
+    row_carries = {}
     previous = None
     result = {}
     for pane in panes:
         heading = headers[pane["pane_id"]]
         values = {"hs_group": heading, "hs_tab": None, "hs_logo_focus": None,
-                  "hs_gap": None, "hs_logo": None, "hs_terminals": None, "hs_task": None}
+                  "hs_gap": None, "hs_logo": None, "hs_terminals": None, "hs_task": None,
+                  "hs_row_logo": None, "hs_row_task": None}
         values.update({f"hs_{state}": None for state in STATES})
+        values.update({f"hs_row_{state}": None for state in STATES})
         if pane.get("agent"):
             if heading and previous is not None:
                 result[previous]["hs_gap"] = BLANK
@@ -336,13 +342,16 @@ def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset()
             else:
                 prefix = "" if heading else BLANK * 2
             values["hs_logo"] = prefix + base + branch + BLANK + logo
+            row_base = row_carries[parent] if parent else ""
+            row_head = row_base + branch if branch else BLANK
+            row_carries[pane["pane_id"]] = row_base + carry if branch else BLANK
             status = pane.get("agent_status", "unknown")
             if status not in STATES:
                 status = "unknown"
             mark = working_glyph if status == "working" else STATES[status]
-            label = task_label(pane, tabs)
-            if pane_names:
-                label = with_pane_name(pane, label)
+            title = task_label(pane, tabs)
+            label = with_pane_name(pane, title) if pane_names else title
+            row_label, row_task = label, ""
             identity = folder_identity(pane)
             if identity:
                 # A named agent's row holds its icon and name; the task goes on
@@ -358,20 +367,39 @@ def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset()
                     values["hs_task"] = (shapes[pane["pane_id"]][1] + BLANK
                                          + ("│" if has_children else BLANK)
                                          + BLANK * (under - 2) + task)
+                # In the status-first rows the pane's own name sits beside the
+                # agent's name, and the task starts under the icon.
+                row_label, row_task = named_row(identity, title)
+                pane_name = (pane.get("name") or pane.get("label") or "").strip() if pane_names else ""
+                same = lambda a, b: a.replace("-", " ").casefold() == b.replace("-", " ").casefold()
+                if pane_name and not same(pane_name, identity[1]):
+                    row_label += " · " + pane_name
+                    # With no title of its own the task is the pane name, already shown.
+                    if same(row_task, pane_name):
+                        row_task = ""
             values[f"hs_{status}"] = mark + " " + label
+            # The status-first rows: the mark leads, the logo ends the line,
+            # and a line drops from the mark to this agent's children.
+            values[f"hs_row_{status}"] = prefix + row_head + mark + " " + row_label
+            values["hs_row_logo"] = logo
+            if row_task:
+                values["hs_row_task"] = (row_carries[pane["pane_id"]] + ("│" if has_children else BLANK)
+                                         + BLANK * _cells(mark) + row_task)
             previous = pane["pane_id"]
         dim_group = pane["workspace_id"] in inactive_ids
         dim_agent = dim_group or pane["pane_id"] in inactive_pane_ids
         # Keep shared headings bright while another agent is active.
-        for key in ["hs_group", "hs_tab", "hs_logo", "hs_task", *[f"hs_{s}" for s in STATES]]:
+        for key in ["hs_group", "hs_tab", "hs_logo", "hs_task", "hs_row_logo", "hs_row_task",
+                    *[f"hs_{s}" for s in STATES], *[f"hs_row_{s}" for s in STATES]]:
             dim = dim_group if key in {"hs_group", "hs_tab"} else dim_agent
             values[key + "_dim"] = values[key] if dim else None
             if dim:
                 values[key] = None
-        for agent, accent in ACCENT_LOGOS.items():
-            values[accent] = values["hs_logo"] if pane.get("agent") == agent else None
-            if values[accent]:
-                values["hs_logo"] = None
+        for key, accents in (("hs_logo", ACCENT_LOGOS), ("hs_row_logo", ROW_ACCENT_LOGOS)):
+            for agent, accent in accents.items():
+                values[accent] = values[key] if pane.get("agent") == agent else None
+                if values[accent]:
+                    values[key] = None
         result[pane["pane_id"]] = values
     return result
 

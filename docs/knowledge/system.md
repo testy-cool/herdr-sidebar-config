@@ -64,13 +64,17 @@ the user, or nothing at all.
 | --- | --- | --- |
 | `hs_group`, `hs_group_dim` | Workspace heading on its first agent | layout |
 | `hs_tab`, `hs_tab_dim` | Tab heading on its first agent, when the workspace has more than one actual tab | layout |
-| `hs_logo`, `hs_logo_dim` | Indentation, branch and provider mark on unfocused agent rows | layout |
+| `hs_row_working`, `hs_row_blocked`, `hs_row_done`, `hs_row_idle`, `hs_row_unknown` | Status-first first line: exactly one holds indentation, branch, status mark and label (a named agent's icon, name and pane name) | layout |
+| `hs_row_logo`, `hs_row_logo_dim` | Provider mark at the end of the first line | layout |
+| `hs_row_logo_kimchi` | Replaces `hs_row_logo` on a bright Kimchi row, coloured `#FF521D` by the default rows | layout (default rows) |
+| `hs_row_task`, `hs_row_task_dim` | A named agent's task line, starting under its icon | layout |
+| `hs_logo`, `hs_logo_dim` | Indentation, branch and provider mark in the older logo-first layout | older layouts |
 | `hs_logo_focus` | Retired focus-bar token, always cleared; selected rows keep the regular icon and prefix | nothing |
 | `hs_gap` | Braille blank row after the last agent before another workspace | layout |
 | `hs_terminals` | Names of terminal-only tabs in the workspace | layout |
-| `hs_task`, `hs_task_dim` | Task line under an agent named by its folder's `.herdr-agent.toml`, indented under the name | layout |
-| `hs_working`, `hs_blocked`, `hs_done`, `hs_idle`, `hs_unknown` | Exactly one populated with the native status mark and task label | layout |
-| `hs_logo_kimchi` | Replaces `hs_logo` on a bright Kimchi row; Herdr rejects `rows_by_agent` for agents it does not know and caps a row at 16 tokens, so the default rows colour this one token `#FF521D` | layout (default rows) |
+| `hs_task`, `hs_task_dim` | Task line under a named agent in the older layout, indented under the name | older layouts |
+| `hs_working`, `hs_blocked`, `hs_done`, `hs_idle`, `hs_unknown` | Older layout: exactly one populated with the native status mark and task label | older layouts |
+| `hs_logo_kimchi` | Replaces `hs_logo` on a bright Kimchi row; Herdr rejects `rows_by_agent` for agents it does not know and caps a row at 16 tokens, so the default rows colour this one token `#FF521D` | older layouts |
 | `hs_*_dim` | Mutually exclusive dim twins of group/tab/logo/status tokens | layout |
 | `hs_workspace_rank` | Hidden 12-digit rank for the activity agent-view sort | view sort |
 | `hs_space`, `hs_space_dim` | Workspace label in Spaces, bright or dim | Spaces fragment |

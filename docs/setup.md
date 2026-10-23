@@ -177,7 +177,7 @@ cp integrations/kimchi/herdr-agent-state.ts ~/.config/kimchi/harness/extensions/
 
 The pane then reports `kimchi` with its idle, working and blocked states. Herdr
 accepts `rows_by_agent` only for agents it knows, so the default rows carry one
-`$hs_logo_kimchi` token that colours the Kimchi mark orange.
+`$hs_row_logo_kimchi` token that colours the Kimchi mark orange.
 
 Pi uses the bundled mark at U+E1AC, or `PI` in text mode. Upgrading an older
 installation requires both the updated plugin and font; rerun setup to replace
@@ -194,14 +194,18 @@ icon = "🔀"
 ```
 
 Both fields are optional. Without `name`, the folder's name is used. The row
-then shows the provider icon, the status, the icon and the name, and the task
-moves to a line of its own under the name, so a narrow sidebar does not cut it
-off:
+then shows the status, the icon, the name and the provider icon, and the task
+moves to a line of its own starting under the icon, so a narrow sidebar does
+not cut it off:
 
 ```text
-├─ ✻ · ○ 🔀 dag
-│          Windmill fetch_corpus flow
+├─ ○ 🔀 dag · ✻
+│    Windmill fetch_corpus flow
 ```
+
+With pane names turned on, a pane's own name, such as `manager` for a second
+pane of the same agent, sits beside the agent's name instead of in front of the
+task.
 
 A title that starts with the agent's name drops it from the task line. Only
 the folder the agent process runs in counts, not the folder its shell started
@@ -209,11 +213,9 @@ in. The next refresh, such as a focus change, picks up a new or edited file.
 Agents without the file keep their single row.
 
 The icon can be any emoji or symbol. A one-colour symbol from a Nerd Font takes
-the row's colour and fades with it; an emoji keeps its own colours. The task
-line is indented by the width Herdr gives the icon, so emoji joined from several
-characters, such as 👩‍💻, still line up. With other machines connected, Herdr
-adds each row's machine name between the provider icon and the status, and the
-task line, which cannot see that name, starts that much further left. Names are cut at 32 characters and control characters
+the row's colour and fades with it; an emoji keeps its own colours. With other
+machines connected, Herdr adds each row's machine name after the name, before
+the provider icon. Names are cut at 32 characters and control characters
 are removed, since any folder an agent runs in can carry this file. A file over
 4 KB, or anything that is not a regular file, is ignored.
 
@@ -231,9 +233,9 @@ herdr pane run "$new" "codex"
 The new agent is then drawn one level in, under the agent that opened it:
 
 ```text
- ✻ · ◔ 🔀 dag
- │        Windmill fetch_corpus flow
- └─  ◆ · ○ codex review
+ ◔ 🔀 dag · ✻
+ │  Windmill fetch_corpus flow
+ └─ ○ codex review · ◆
 ```
 
 The tag lasts until the pane closes. It is ignored when the opener has closed,

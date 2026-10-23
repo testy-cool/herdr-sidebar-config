@@ -20,7 +20,9 @@ class BranchLengthTests(unittest.TestCase):
             short = desired_rows(*args, inactive_ids=inactive, branch_length='short')
             for pane in panes:
                 for key, value in standard[pane['pane_id']].items():
-                    expected = value.replace('─', '') if value and key in ('hs_logo', 'hs_logo_dim') else value
+                    # The tree sits in the logo, or in front of the mark in the status-first rows.
+                    branched = key in ('hs_logo', 'hs_logo_dim') or key.startswith('hs_row_') and 'logo' not in key and 'task' not in key
+                    expected = value.replace('─', '') if value and branched else value
                     self.assertEqual(short[pane['pane_id']][key], expected)
             panes_single = [dict(p, tab_id='t1') for p in panes]
             self.assertEqual(desired_rows(panes_single, args[1], args[2]),
