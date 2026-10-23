@@ -121,6 +121,12 @@ class StatusFirstRowTests(unittest.TestCase):
         bare = desired_rows([agent('p2', terminal_title_stripped='')], WORKSPACES, {'t1': 'main'})['p2']
         self.assertEqual(bare['hs_row_idle'], B + '○ Claude session')
 
+    def test_a_programs_own_name_is_not_a_task(self):
+        rows = desired_rows([agent('p1', self.folder('gatekeeper'), terminal_title_stripped='Claude Code')],
+                            WORKSPACES, {'t1': 'main'}, logo_position='before_name')['p1']
+        self.assertIsNone(rows['hs_row_task'])
+        self.assertIsNone(rows['hs_agent_task'])
+
     def test_a_named_agent_shows_no_stand_in_task(self):
         # Pi's fixed title names the agent's own folder, even when its shell
         # started in another agent's folder; the tab's label and "pi session"

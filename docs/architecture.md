@@ -76,7 +76,9 @@ not used: it is often a one-word answer or a pasted block. Other cases use the
 existing terminal title, then the herdr agent
 name, then tab and provider fallbacks. A terminal title that only names the
 pane's own directory (Pi's fixed `π - <cwd>`), either the shell's or the agent
-process's, is refused, because the space row already shows where the agent is.
+process's, is refused, because the space row already shows where the agent is. So is a
+title that is only the program's own name, such as Claude Code's default
+`Claude Code`.
 Under a name, the status-first rows show a task only when one of the titles
 above describes it; the agent name, tab and provider fallbacks are left out. These are deterministic local heuristics, not conversation
 analysis or a model call.

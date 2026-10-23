@@ -54,6 +54,11 @@ def task_label(pane, tabs):
     return described_task(pane) or fallback_label(pane, tabs)
 
 
+# A terminal title that is only the program's own name, such as Claude Code's
+# default "Claude Code", says nothing about the task.
+PROGRAM_TITLES = {"claude code", "claude", "codex", "pi", "grok", "agy", "gemini", "opencode", "kimchi"}
+
+
 def described_task(pane):
     """What the agent is doing, from its title or conversation, or None."""
     tokens = pane.get("tokens") or {}
@@ -74,7 +79,8 @@ def described_task(pane):
     parts = [p.strip().rstrip(".… ") for p in raw.split(" | ")]
     candidates = [p for p in parts if p and not p.startswith(("[", "~/", "/", "<"))
                   and not re.match(r"^[A-Za-z]:[/\\]", p)
-                  and not _names_own_directory(p, pane)]
+                  and not _names_own_directory(p, pane)
+                  and p.casefold() not in PROGRAM_TITLES]
     # Claude's named session is more durable than its transient prompt snippets.
     if candidates and re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+){2,}", candidates[0]):
         return candidates[0].replace("-", " ").capitalize()
