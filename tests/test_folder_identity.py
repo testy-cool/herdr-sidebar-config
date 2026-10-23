@@ -1,3 +1,4 @@
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -72,6 +73,22 @@ class FolderIdentityTests(unittest.TestCase):
         self.assertEqual(icon, '')
         self.assertNotIn('\x1b', name)
         self.assertNotIn('\n', name)
+        self.assertLessEqual(len(name), 32)
+
+    def test_files_that_could_stall_or_crash_a_refresh_are_skipped(self):
+        if hasattr(os, 'mkfifo'):  # Windows has no named pipes in the filesystem.
+            piped = self.folder('piped')
+            os.mkfifo(Path(piped) / IDENTITY_FILE)
+            self.assertIsNone(folder_identity({'foreground_cwd': piped}))
+        nested = self.folder('nested', 'x = ' + '[' * 2000 + ']' * 2000 + '\n')
+        self.assertIsNone(folder_identity({'foreground_cwd': nested}))
+        large = self.folder('large', 'icon = "🔀"\n# ' + 'x' * 5000 + '\n')
+        self.assertIsNone(folder_identity({'foreground_cwd': large}))
+
+    def test_folder_name_fallback_is_cleaned_too(self):
+        odd = self.folder('a\x9b31m' + 'b' * 60, '')
+        _, name = folder_identity({'foreground_cwd': odd})
+        self.assertNotIn('\x9b', name)
         self.assertLessEqual(len(name), 32)
 
     def test_dimmed_and_working_rows_keep_the_identity(self):

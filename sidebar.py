@@ -157,7 +157,8 @@ IDENTITY_FILE = ".herdr-agent.toml"
 def _display_text(value, limit):
     if not isinstance(value, str):
         return ""
-    text = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]|[\x00-\x1f\x7f]", "", " ".join(value.split()))
+    # C1 controls (\x80-\x9f) include a one-byte CSI that some terminals obey.
+    text = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]|[\x00-\x1f\x7f-\x9f]", "", " ".join(value.split()))
     return text[:limit].strip()
 
 
@@ -168,12 +169,20 @@ def folder_identity(pane):
     folder = pane.get("foreground_cwd")
     if not isinstance(folder, str) or not folder:
         return None
+    path = Path(folder) / IDENTITY_FILE
     try:
-        with (Path(folder) / IDENTITY_FILE).open("rb") as stream:
-            data = tomllib.load(stream)
-    except (OSError, ValueError):
+        # A pipe or device here would block the refresh while it holds the
+        # group lock, so only a small regular file is read.
+        if not path.is_file():
+            return None
+        with path.open("rb") as stream:
+            raw = stream.read(4097)
+        if len(raw) > 4096:
+            return None
+        data = tomllib.loads(raw.decode("utf-8"))
+    except (OSError, ValueError, RecursionError):
         return None
-    name = _display_text(data.get("name"), 32) or Path(folder).name
+    name = _display_text(data.get("name"), 32) or _display_text(Path(folder).name, 32)
     return _display_text(data.get("icon"), 8), name
 
 
