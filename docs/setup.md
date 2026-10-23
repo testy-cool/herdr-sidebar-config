@@ -217,6 +217,29 @@ task line, which cannot see that name, starts that much further left. Names are 
 are removed, since any folder an agent runs in can carry this file. A file over
 4 KB, or anything that is not a regular file, is ignored.
 
+## Show who opened an agent
+
+When one agent opens another in a new pane, such as a reviewer beside the
+session that asked for the review, tag the new pane with the opener's pane id:
+
+```sh
+new=$(herdr pane split "$HERDR_PANE_ID" --direction right | jq -r '.result.pane.pane_id')
+herdr pane report-metadata "$new" --source opener --token "hs_parent=$HERDR_PANE_ID"
+herdr pane run "$new" "codex"
+```
+
+The new agent is then drawn one level in, under the agent that opened it:
+
+```text
+ ✻ · ◔ 🔀 dag
+ │        Windmill fetch_corpus flow
+ └─  ◆ · ○ codex review
+```
+
+The tag lasts until the pane closes. It is ignored when the opener has closed,
+or when the new pane does not come right after the opener's rows in the same
+tab. A split from the opener's pane always lands there.
+
 ## Manual removal
 
 Use this if setup has no backup, refuses to replace a file edited later, or

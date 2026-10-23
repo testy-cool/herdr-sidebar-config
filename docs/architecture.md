@@ -47,6 +47,12 @@ first agent. They remain terminals; no fake agent identity is reported. A
 workspace with no detected agents at all has no anchor in Herdr's Agents panel
 and remains visible in Spaces.
 
+A pane tagged `hs_parent=<pane id>` that comes right after that agent's rows in
+the same tab is drawn one level in, its branch under the parent's logo. Herdr's
+own order is layout order, and a pane split from its opener lands right after
+it, so no reordering is needed; a tag whose parent is gone or not directly
+above is ignored. See [show who opened an agent](setup.md#show-who-opened-an-agent).
+
 The outer workspace-to-tab connection has no branch. Under each tab, agents use
 `├─` and `└─` by default; `branch_length = "short"` uses `├` and `└` to save a
 column while preserving indentation. A workspace with one tab has neither tab headings nor branches.
@@ -89,6 +95,7 @@ Publisher: `plugin:testy-cool.herdr-sidebar`.
 | `hs_*_dim` | Mutually exclusive dim versions of agent/group display tokens |
 | `hs_space`, `hs_space_dim` | Mutually exclusive workspace labels in Spaces |
 | `hs_title` | Optional user-owned title override; read but never written or cleared by this plugin |
+| `hs_parent` | Optional pane id of the agent that opened this pane, set by the opener; read but never written or cleared by this plugin |
 
 Absent generated values are cleared, including when a pane stops being an
 agent. Native identity/state and other plugins' metadata are not overwritten.

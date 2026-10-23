@@ -75,6 +75,7 @@ the user, or nothing at all.
 | `hs_workspace_rank` | Hidden 12-digit rank for the activity agent-view sort | view sort |
 | `hs_space`, `hs_space_dim` | Workspace label in Spaces, bright or dim | Spaces fragment |
 | `hs_title` | Optional user-owned title override; read, never written or cleared | user |
+| `hs_parent` | Pane id of the agent that opened this pane, set by the opener; read, never written or cleared | user |
 
 Rules that hold across the contract: absent generated values are cleared, a pane
 that stops being an agent loses every generated key, `clear` removes this
