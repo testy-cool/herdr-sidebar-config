@@ -39,8 +39,7 @@ def _task_text(value):
         return None
     for raw in value.splitlines():
         text = re.sub(r"\s+", " ", raw).strip().lstrip("#>*- ")
-        # Claude Code's stand-ins for a pasted screenshot or block of text.
-        text = re.sub(r"^(?:\[(?:Image #\d+|Pasted text #\d+(?: \+\d+ lines?)?)\]\s*)+", "", text, flags=re.I)
+        text = re.sub(r"^(?:\[Image #\d+\]\s*)+", "", text, flags=re.I)
         if not text or text.startswith(("AGENTS.md instructions", "<environment_context", "<INSTRUCTIONS", "<skill")):
             continue
         if VAGUE.match(text):
@@ -92,18 +91,25 @@ BRANDED_DIRECTORY = re.compile(r"^(?:π|pi|omp|codex|claude)?\s*[-–—>:·|]?\
 
 
 def _names_own_directory(text, pane):
-    cwd = pane.get("cwd") or pane.get("foreground_cwd") or ""
-    if not cwd:
-        return False
-    # Windows snapshot paths use backslashes.
-    base = re.split(r"[/\\]", cwd.rstrip("/\\"))[-1]
-    if not base:
-        return False
     match = BRANDED_DIRECTORY.match(text)
-    return bool(match) and match.group(1).lower() == base.lower()
+    if not match:
+        return False
+    # The shell's folder (cwd) and the agent's own (foreground_cwd) differ when
+    # an agent is started from another agent's folder; either name says nothing.
+    for folder in (pane.get("cwd"), pane.get("foreground_cwd")):
+        # Windows snapshot paths use backslashes.
+        base = re.split(r"[/\\]", (folder or "").rstrip("/\\"))[-1]
+        if base and match.group(1).lower() == base.lower():
+            return True
+    return False
 
 
 def task_label(pane, tabs):
+    return described_task(pane) or fallback_label(pane, tabs)
+
+
+def described_task(pane):
+    """What the agent is doing, from its title or conversation, or None."""
     tokens = pane.get("tokens") or {}
     if tokens.get("hs_title"):
         return tokens["hs_title"]
@@ -129,6 +135,11 @@ def task_label(pane, tabs):
         if not VAGUE.match(text):
             text = re.sub(r"^(?:can|could|would) (?:you|we) (?:please )?", "", text, flags=re.I)
             return text[:1].upper() + text[1:]
+    return None
+
+
+def fallback_label(pane, tabs):
+    """Something to show when nothing says what the agent is doing."""
     # A herdr agent name is chosen by whoever started the agent and says which
     # one this is; a tab label is usually automatic-rename's program name
     # ("agent"), which every agent tab shares.
@@ -140,6 +151,11 @@ def task_label(pane, tabs):
     tab = re.sub(r"^\[\d+\]\s*", "", tabs.get(pane.get("tab_id"), ""))
     if tab and tab not in {"main", "shell"} and not re.fullmatch(r"(?:💤\s*)?\d+", tab):
         return tab.replace("-", " ")
+    return generic_label(pane)
+
+
+def generic_label(pane):
+    """The stand-in task for an agent nothing else describes."""
     return {"agy": "AGY session", "codex": "Codex session", "claude": "Claude session"}.get(
         pane.get("agent"), f"{pane.get('agent', 'Agent')} session")
 
@@ -356,9 +372,13 @@ def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset()
             if status not in STATES:
                 status = "unknown"
             mark = working_glyph if status == "working" else STATES[status]
-            title = task_label(pane, tabs)
+            described = described_task(pane)
+            title = described or fallback_label(pane, tabs)
             label = with_pane_name(pane, title) if pane_names else title
             row_label, row_task = label, ""
+            # Under a name, a stand-in such as the tab's label or "Pi session"
+            # says nothing more, so only a described task gets the second line.
+            row_title = described or ""
             identity = folder_identity(pane)
             if identity:
                 # A named agent's row holds its icon and name; the task goes on
@@ -377,7 +397,7 @@ def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset()
                 # In the status-first rows the pane's own name sits beside the
                 # agent's name, and the task starts under the icon.
                 # With the logo before the name, it takes the folder icon's place.
-                row_label, row_task = named_row(("", identity[1]) if logo_position == "before_name" else identity, title)
+                row_label, row_task = named_row(("", identity[1]) if logo_position == "before_name" else identity, row_title)
                 pane_name = (pane.get("name") or pane.get("label") or "").strip() if pane_names else ""
                 # A pane name that starts with the agent's name ("teresa · interview")
                 # adds only the rest; one equal to it adds nothing.

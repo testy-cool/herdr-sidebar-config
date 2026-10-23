@@ -88,6 +88,24 @@ class StatusFirstRowTests(unittest.TestCase):
         self.assertEqual(rows['hs_row_idle'], B + '○ joshua - Task p1')
         self.assertIsNone(rows['hs_row_task'])
 
+    def test_unnamed_agents_without_a_pane_name_keep_one_line(self):
+        rows = desired_rows([agent('p1')], WORKSPACES, {'t1': 'main'}, pane_names=True)['p1']
+        self.assertEqual(rows['hs_row_idle'], B + '○ Task p1')
+        self.assertIsNone(rows['hs_row_task'])
+        # With nothing described, the stand-in fills the one line.
+        bare = desired_rows([agent('p2', terminal_title_stripped='')], WORKSPACES, {'t1': 'main'})['p2']
+        self.assertEqual(bare['hs_row_idle'], B + '○ Claude session')
+
+    def test_a_named_agent_shows_no_stand_in_task(self):
+        # Pi's fixed title names the agent's own folder, even when its shell
+        # started in another agent's folder; the tab's label and "pi session"
+        # are stand-ins, so nothing goes on the second line.
+        gate = self.folder('gatekeeper')
+        pane = agent('p1', gate, agent='pi', cwd='/x/agents/teresa', terminal_title_stripped='π - gatekeeper')
+        rows = desired_rows([pane], WORKSPACES, {'t1': '1 · gatekeeper › main › pi'})['p1']
+        self.assertEqual(rows['hs_row_idle'], B + '○ ' + ICON + ' gatekeeper')
+        self.assertIsNone(rows['hs_row_task'])
+
     def test_dimmed_and_accented_logos(self):
         panes = [agent('p1', self.folder('dag')), agent('p2', agent='kimchi')]
         rows = desired_rows(panes, WORKSPACES, {'t1': 'main'}, inactive_pane_ids=frozenset({'p1'}))

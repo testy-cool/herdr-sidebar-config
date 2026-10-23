@@ -72,8 +72,10 @@ local history and selects its latest meaningful user instruction. Malformed
 records, injected instruction headers, screenshot markers, and vague follow-ups
 are skipped. Other cases use the existing terminal title, then the herdr agent
 name, then tab and provider fallbacks. A terminal title that only names the
-pane's own directory (Pi's fixed `π - <cwd>`) is refused, because the space row
-already shows where the agent is. These are deterministic local heuristics, not conversation
+pane's own directory (Pi's fixed `π - <cwd>`), either the shell's or the agent
+process's, is refused, because the space row already shows where the agent is.
+Under a name, the status-first rows show a task only when one of the titles
+above describes it; the agent name, tab and provider fallbacks are left out. These are deterministic local heuristics, not conversation
 analysis or a model call.
 
 When the folder an agent process runs in (`foreground_cwd`, not the shell's
