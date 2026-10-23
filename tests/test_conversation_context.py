@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from conversation_context import (collect, latest_request, read_json, save_json,
+from conversation_context import (collect, latest_request, read_json, request_text, save_json,
                                   short_title, sleeping_label, tab_changes)
 
 
@@ -48,6 +48,11 @@ class ConversationContextTests(unittest.TestCase):
         (custom / 'history.jsonl').write_text(json.dumps({'session_id': 'session-1', 'text': 'Read native names'}))
         with patch.dict(os.environ, {'CODEX_HOME': str(custom)}):
             self.assertEqual(latest_request(self.pane), 'Read native names')
+
+    def test_pasted_text_stand_ins_are_skipped_like_screenshots(self):
+        self.assertIsNone(request_text('[Pasted text #1 +14 lines]', self.pane))
+        self.assertEqual(request_text('[Pasted text #2 +1 line] fix the header', self.pane), 'Fix the header')
+        self.assertEqual(request_text('[Image #1] [Pasted text #3 +5 lines]\nCheck this', self.pane), 'Check this')
 
     def test_codex_uses_exact_rollout_and_checks_header_identity(self):
         path = self.write('rollout.jsonl', [

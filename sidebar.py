@@ -39,7 +39,8 @@ def _task_text(value):
         return None
     for raw in value.splitlines():
         text = re.sub(r"\s+", " ", raw).strip().lstrip("#>*- ")
-        text = re.sub(r"^(?:\[Image #\d+\]\s*)+", "", text, flags=re.I)
+        # Claude Code's stand-ins for a pasted screenshot or block of text.
+        text = re.sub(r"^(?:\[(?:Image #\d+|Pasted text #\d+(?: \+\d+ lines?)?)\]\s*)+", "", text, flags=re.I)
         if not text or text.startswith(("AGENTS.md instructions", "<environment_context", "<INSTRUCTIONS", "<skill")):
             continue
         if VAGUE.match(text):
