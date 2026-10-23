@@ -251,8 +251,12 @@ The new agent is then drawn one level in, under the agent that opened it:
 ```text
  ◔ 🔀 dag · ✻
  │  Windmill fetch_corpus flow
- └─ ○ codex review · ◆
+ └── ○ codex review · ◆
 ```
+
+A nested agent's branch is long, like `tree`'s `├── `, so its status mark sits
+under its opener's name and reads as one level down. Top-level rows keep the
+branch length set in Settings.
 
 The tag lasts until the pane closes. It is ignored when the opener has closed,
 or when the new pane does not come right after the opener's rows in the same

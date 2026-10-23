@@ -79,7 +79,7 @@ class StatusFirstRowTests(unittest.TestCase):
         rows = desired_rows(panes, WORKSPACES, {'t1': 'main'})
         # The opener's mark is one cell in; a line drops from it past the task.
         self.assertEqual(rows['p1']['hs_row_task'], B + '│' + B + 'Task p1')
-        self.assertEqual(rows['p2']['hs_row_idle'], B * 2 + B + '└─ ○ Review')
+        self.assertEqual(rows['p2']['hs_row_idle'], B * 2 + B + '└── ○ Review')
         self.assertEqual(rows['p2']['hs_row_logo'], logo_for('codex', 'font'))
         self.assertIsNone(rows['p2']['hs_row_task'])
 
@@ -121,6 +121,35 @@ class StatusFirstRowTests(unittest.TestCase):
         self.assertEqual(rows['p1']['hs_row_logo_dim'], C)
         self.assertIsNone(rows['p2']['hs_row_logo'])
         self.assertEqual(rows['p2']['hs_row_logo_kimchi'], logo_for('kimchi', 'font'))
+
+
+    def test_a_childs_mark_sits_under_its_openers_name(self):
+        # Short top-level branches, a long one for each child, the logo before
+        # the name: every child's mark lines up with its opener's name.
+        scraper = self.folder('scraper')
+        panes = [agent('p1', scraper, name='manager'),
+                 agent('p2', agent='codex', name='codex review', tokens={'hs_parent': 'p1'},
+                       terminal_title_stripped='Assess the run'),
+                 agent('p3', agent='codex', tokens={'hs_parent': 'p2'}, terminal_title_stripped='Check it'),
+                 agent('p4', agent='codex', tokens={'hs_parent': 'p1'}, terminal_title_stripped='Second look'),
+                 agent('p5'), dict(pane_id='s1', workspace_id='w1', tab_id='t2')]
+        rows = desired_rows(panes, WORKSPACES, {'t1': 'misc', 't2': 'shell'}, branch_length='short',
+                            pane_names=True, logo_position='before_name')
+        X = logo_for('codex', 'font')
+        line = lambda p: rows[p]['hs_row_idle']
+        self.assertEqual(line('p1'), '├ ○ ' + C + ' scraper · manager')
+        self.assertEqual(line('p2'), B * 2 + '│' + B + '├── ○ ' + X + ' codex review')
+        self.assertEqual(rows['p2']['hs_row_task'], '│' + B + '│' + B * 3 + '│' + B + 'Assess the run')
+        self.assertEqual(line('p3'), B * 2 + '│' + B + '│' + B * 3 + '└── ○ ' + X + ' Check it')
+        self.assertEqual(line('p4'), B * 2 + '│' + B + '└── ○ ' + X + ' Second look')
+        self.assertEqual(line('p5'), B * 2 + '└ ○ ' + C + ' Task p5')
+        # Herdr adds one cell to a first row and three to the rest, and the
+        # opener's line follows a tab heading.
+        first = 3 + line('p1').index('scraper')
+        for child in ('p2', 'p4'):
+            self.assertEqual(1 + line(child).index('○'), first, child)
+        # A grandchild's mark sits under its own opener's name the same way.
+        self.assertEqual(line('p3').index('○'), line('p2').index('codex review'))
 
 
 if __name__ == '__main__':

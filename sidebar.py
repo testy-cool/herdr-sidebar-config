@@ -367,8 +367,12 @@ def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset()
                 prefix = "" if heading else BLANK * 2
             values["hs_logo"] = prefix + base + branch + BLANK + logo
             row_base = row_carries[parent] if parent else ""
-            row_head = row_base + branch if branch else BLANK
-            row_carries[pane["pane_id"]] = row_base + carry if branch else BLANK
+            # A child's branch is long, as in tree's "├── ", so its mark sits
+            # two cells right of its opener's and reads as one level down.
+            row_branch = ("└" if last else "├") + "── " if parent else branch
+            row_carry = ("│" if not last else BLANK) + BLANK * (len(row_branch) - 1) if row_branch else ""
+            row_head = row_base + row_branch if row_branch else BLANK
+            row_carries[pane["pane_id"]] = row_base + row_carry if row_branch else BLANK
             status = pane.get("agent_status", "unknown")
             if status not in STATES:
                 status = "unknown"
