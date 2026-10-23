@@ -39,7 +39,8 @@ def _task_text(value):
         return None
     for raw in value.splitlines():
         text = re.sub(r"\s+", " ", raw).strip().lstrip("#>*- ")
-        text = re.sub(r"^(?:\[Image #\d+\]\s*)+", "", text, flags=re.I)
+        # Claude Code's stand-ins for a pasted screenshot or block of text.
+        text = re.sub(r"^(?:\[(?:Image #\d+|Pasted text #\d+(?: \+\d+ lines?)?)\]\s*)+", "", text, flags=re.I)
         if not text or text.startswith(("AGENTS.md instructions", "<environment_context", "<INSTRUCTIONS", "<skill")):
             continue
         if VAGUE.match(text):
@@ -408,6 +409,12 @@ def desired_rows(panes, workspaces, tabs, icons="font", inactive_ids=frozenset()
                     # With no title of its own the task is the pane name, already shown.
                     if row_task.replace("-", " ").casefold() == pane_name.replace("-", " ").casefold():
                         row_task = ""
+            elif pane_names and (pane.get("name") or pane.get("label") or "").strip():
+                # An agent known only by its pane's name gets the same two
+                # lines: that name, then the task under it.
+                row_label = (pane.get("name") or pane.get("label")).strip()
+                rest = after_name(row_label, row_title)
+                row_task = row_title if rest is None else rest
             values[f"hs_{status}"] = mark + " " + label
             # The status-first rows: the mark leads, the logo ends the line,
             # and a line drops from the mark to this agent's children.

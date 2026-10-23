@@ -83,10 +83,16 @@ class StatusFirstRowTests(unittest.TestCase):
         self.assertEqual(rows['p2']['hs_row_logo'], logo_for('codex', 'font'))
         self.assertIsNone(rows['p2']['hs_row_task'])
 
-    def test_unnamed_agents_keep_one_line(self):
+    def test_an_agent_named_only_by_its_pane_gets_two_lines(self):
         rows = desired_rows([agent('p1', name='joshua')], WORKSPACES, {'t1': 'main'}, pane_names=True)['p1']
-        self.assertEqual(rows['hs_row_idle'], B + '○ joshua - Task p1')
-        self.assertIsNone(rows['hs_row_task'])
+        self.assertEqual(rows['hs_row_idle'], B + '○ joshua')
+        self.assertEqual(rows['hs_row_task'], B * 3 + 'Task p1')
+        # The older rows keep "{pane name} - {task}".
+        self.assertEqual(rows['hs_idle'], '○ joshua - Task p1')
+        # A title that starts with the pane name gives only the rest.
+        review = desired_rows([agent('p2', name='codex review', terminal_title_stripped='codex review · Assess the run')],
+                              WORKSPACES, {'t1': 'main'}, pane_names=True)['p2']
+        self.assertEqual((review['hs_row_idle'], review['hs_row_task']), (B + '○ codex review', B * 3 + 'Assess the run'))
 
     def test_unnamed_agents_without_a_pane_name_keep_one_line(self):
         rows = desired_rows([agent('p1')], WORKSPACES, {'t1': 'main'}, pane_names=True)['p1']

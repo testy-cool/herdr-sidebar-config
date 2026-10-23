@@ -45,7 +45,9 @@ The config key is `logo_position = "end"` (default) or `"before_name"`.
 **Pane name before task** shows a renamed pane as `{pane name} - {task}`, for
 example `architect - Fix landing page`. Panes without a name (set with
 `herdr pane rename`) keep the task alone, and a task that already starts with the
-name is not repeated. The config key is `pane_names = false` (default) or `true`.
+name is not repeated. In the status-first rows, a renamed pane's name takes the first
+line and its task the line below, like an agent named by its folder. The config
+key is `pane_names = false` (default) or `true`.
 
 Ordering defaults to `order = "workspace"`. Choose `"activity"` to bring working
 workspace groups forward, followed by recent lifecycle activity. Tabs and agents
