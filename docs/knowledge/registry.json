@@ -116,6 +116,8 @@
     {"name": "hs_row_idle_dim", "meaning": "Dim twin of hs_row_idle", "consumed_by": "layout"},
     {"name": "hs_row_unknown", "meaning": "Status-first first line for a unknown agent: tree, mark, icon, name and pane name", "consumed_by": "layout"},
     {"name": "hs_row_unknown_dim", "meaning": "Dim twin of hs_row_unknown", "consumed_by": "layout"},
+    {"name": "hs_agent_name", "meaning": "An agent's name (and pane name) as plain text, for clients that draw their own rows", "consumed_by": "user"},
+    {"name": "hs_agent_task", "meaning": "An agent's task line as plain text, for clients that draw their own rows", "consumed_by": "user"},
     {"name": "hs_workspace_rank", "meaning": "Hidden 12-digit rank used by the activity agent-view sort", "consumed_by": "view"},
     {"name": "hs_title", "meaning": "User-owned title override; read but never written or cleared", "consumed_by": "user"},
     {"name": "hs_parent", "meaning": "Pane id of the agent that opened this pane, set by the opener; read but never written or cleared", "consumed_by": "user"},

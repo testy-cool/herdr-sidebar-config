@@ -94,6 +94,25 @@ class StatusFirstRowTests(unittest.TestCase):
                               WORKSPACES, {'t1': 'main'}, pane_names=True)['p2']
         self.assertEqual((review['hs_row_idle'], review['hs_row_task']), (B + '○ codex review', B * 3 + 'Assess the run'))
 
+    def test_name_and_task_are_also_published_as_plain_text(self):
+        # A client that draws its own rows reads these: no tree, mark, logo or
+        # spacing, and no dim twin, so a quiet agent keeps them too.
+        scraper = self.folder('scraper')
+        panes = [agent('p1', scraper, name='manager'),
+                 agent('p2', name='codex review', terminal_title_stripped='codex review · Assess the run',
+                       tokens={'hs_parent': 'p1'}),
+                 agent('p3'), agent('p4', terminal_title_stripped='')]
+        rows = desired_rows(panes, WORKSPACES, {'t1': 'main'}, pane_names=True, logo_position='before_name',
+                            inactive_pane_ids={'p1'})
+        plain = {pane: (rows[pane]['hs_agent_name'], rows[pane]['hs_agent_task']) for pane in rows}
+        self.assertEqual(plain, {'p1': ('scraper · manager', 'Task p1'),
+                                 'p2': ('codex review', 'Assess the run'),
+                                 'p3': (None, 'Task p3'), 'p4': (None, None)})
+        self.assertNotIn('hs_agent_name_dim', rows['p1'])
+        # A pane that stops being an agent clears them.
+        shell = desired_rows([dict(agent('p1', scraper), agent=None)], WORKSPACES, {'t1': 'main'})['p1']
+        self.assertEqual((shell['hs_agent_name'], shell['hs_agent_task']), (None, None))
+
     def test_unnamed_agents_without_a_pane_name_keep_one_line(self):
         rows = desired_rows([agent('p1')], WORKSPACES, {'t1': 'main'}, pane_names=True)['p1']
         self.assertEqual(rows['hs_row_idle'], B + '○ Task p1')
@@ -101,6 +120,12 @@ class StatusFirstRowTests(unittest.TestCase):
         # With nothing described, the stand-in fills the one line.
         bare = desired_rows([agent('p2', terminal_title_stripped='')], WORKSPACES, {'t1': 'main'})['p2']
         self.assertEqual(bare['hs_row_idle'], B + '○ Claude session')
+
+    def test_a_programs_own_name_is_not_a_task(self):
+        rows = desired_rows([agent('p1', self.folder('gatekeeper'), terminal_title_stripped='Claude Code')],
+                            WORKSPACES, {'t1': 'main'}, logo_position='before_name')['p1']
+        self.assertIsNone(rows['hs_row_task'])
+        self.assertIsNone(rows['hs_agent_task'])
 
     def test_a_named_agent_shows_no_stand_in_task(self):
         # Pi's fixed title names the agent's own folder, even when its shell

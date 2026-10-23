@@ -76,7 +76,9 @@ not used: it is often a one-word answer or a pasted block. Other cases use the
 existing terminal title, then the herdr agent
 name, then tab and provider fallbacks. A terminal title that only names the
 pane's own directory (Pi's fixed `π - <cwd>`), either the shell's or the agent
-process's, is refused, because the space row already shows where the agent is.
+process's, is refused, because the space row already shows where the agent is. So is a
+title that is only the program's own name, such as Claude Code's default
+`Claude Code`.
 Under a name, the status-first rows show a task only when one of the titles
 above describes it; the agent name, tab and provider fallbacks are left out. These are deterministic local heuristics, not conversation
 analysis or a model call.
@@ -105,6 +107,7 @@ Publisher: `plugin:testy-cool.herdr-sidebar`.
 | `hs_gap` | Blank row after the last agent before another workspace |
 | `hs_terminals` | Names of terminal-only tabs in this workspace |
 | `hs_row_task` | Task line under a named agent's row, starting under its icon |
+| `hs_agent_name`, `hs_agent_task` | The same name and task as plain text, with no tree, mark, logo or spacing, for clients that draw their own rows; no dim twin |
 | `hs_logo`, `hs_<status>`, `hs_task` | The same rows in the older logo-first layout, still published so an install that has not rerun setup keeps working |
 | `hs_*_dim` | Mutually exclusive dim versions of agent/group display tokens |
 | `hs_space`, `hs_space_dim` | Mutually exclusive workspace labels in Spaces |
