@@ -202,7 +202,8 @@ The icon can be any emoji or symbol. Single emoji with their own colour, such
 as 🔀 or 🧪, line up best, because terminals agree on their width. Emoji built
 from several characters, such as flags or 👩‍💻, may be measured differently by
 Herdr and the terminal. Names are cut at 32 characters and control characters
-are removed, since any folder an agent runs in can carry this file.
+are removed, since any folder an agent runs in can carry this file. A file over
+4 KB, or anything that is not a regular file, is ignored.
 
 ## Manual removal
 
