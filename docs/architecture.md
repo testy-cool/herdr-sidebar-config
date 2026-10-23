@@ -64,6 +64,10 @@ pane's own directory (Pi's fixed `π - <cwd>`) is refused, because the space row
 already shows where the agent is. These are deterministic local heuristics, not conversation
 analysis or a model call.
 
+When the folder an agent process runs in (`foreground_cwd`, not the shell's
+`cwd`) holds `.herdr-agent.toml`, its `icon` and `name` go before whichever
+title was chosen. See [name an agent by its folder](setup.md#name-an-agent-by-its-folder).
+
 Saved conversation context extends these exact-session reads to generic tab
 names and a read-only popup. Hibernate records link sleeping conversations to
 the popup without adding rows in Spaces. See

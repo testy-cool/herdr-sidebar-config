@@ -183,6 +183,28 @@ Pi uses the bundled mark at U+E1AC, or `PI` in text mode. Upgrading an older
 installation requires both the updated plugin and font; rerun setup to replace
 the font and extend Ghostty's existing provider mapping without duplicating it.
 
+## Name an agent by its folder
+
+If you start each agent inside its own folder, that folder can name the agent.
+Add `.herdr-agent.toml` to it:
+
+```toml
+name = "dag"
+icon = "🔀"
+```
+
+Both fields are optional. Without `name`, the folder's name is used. The row
+then reads `○ 🔀 dag · <task>`, after the provider icon. Only the folder the
+agent process runs in counts, not the folder its shell started in. The next
+refresh, such as a focus change, picks up a new or edited file.
+
+The icon can be any emoji or symbol. Single emoji with their own colour, such
+as 🔀 or 🧪, line up best, because terminals agree on their width. Emoji built
+from several characters, such as flags or 👩‍💻, may be measured differently by
+Herdr and the terminal. Names are cut at 32 characters and control characters
+are removed, since any folder an agent runs in can carry this file. A file over
+4 KB, or anything that is not a regular file, is ignored.
+
 ## Manual removal
 
 Use this if setup has no backup, refuses to replace a file edited later, or
