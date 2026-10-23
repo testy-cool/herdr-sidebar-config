@@ -77,9 +77,14 @@ class FolderIdentityTests(unittest.TestCase):
 
     def test_files_that_could_stall_or_crash_a_refresh_are_skipped(self):
         if hasattr(os, 'mkfifo'):  # Windows has no named pipes in the filesystem.
+            # Opening the pipe itself must not wait for a writer, so a file
+            # swapped for a pipe after any path check cannot block either.
             piped = self.folder('piped')
             os.mkfifo(Path(piped) / IDENTITY_FILE)
             self.assertIsNone(folder_identity({'foreground_cwd': piped}))
+        folder = self.folder('folder')
+        (Path(folder) / IDENTITY_FILE).mkdir()
+        self.assertIsNone(folder_identity({'foreground_cwd': folder}))
         nested = self.folder('nested', 'x = ' + '[' * 2000 + ']' * 2000 + '\n')
         self.assertIsNone(folder_identity({'foreground_cwd': nested}))
         large = self.folder('large', 'icon = "🔀"\n# ' + 'x' * 5000 + '\n')

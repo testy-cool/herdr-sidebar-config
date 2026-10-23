@@ -3,6 +3,7 @@ import argparse
 import json
 import os
 import re
+import stat
 import sys
 import time
 import tomllib
@@ -172,10 +173,13 @@ def folder_identity(pane):
     path = Path(folder) / IDENTITY_FILE
     try:
         # A pipe or device here would block the refresh while it holds the
-        # group lock, so only a small regular file is read.
-        if not path.is_file():
-            return None
-        with path.open("rb") as stream:
+        # group lock, so the open never waits and only a small regular file
+        # is read. Checking the opened file, not the path, leaves no gap for
+        # a swap in between. Windows has no O_NONBLOCK and no such pipes.
+        flags = os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_BINARY", 0)
+        with os.fdopen(os.open(path, flags), "rb") as stream:
+            if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+                return None
             raw = stream.read(4097)
         if len(raw) > 4096:
             return None
