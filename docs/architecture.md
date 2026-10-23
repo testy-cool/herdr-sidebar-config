@@ -55,8 +55,8 @@ out. A named agent's task gets its own line, starting under the icon or logo.
 
 A pane tagged `hs_parent=<pane id>` that comes right after that agent's rows in
 the same tab is drawn one level in, its branch under the parent's status mark.
-In the status-first rows that branch is long (`├── `), so the child's mark
-sits under the parent's name. Herdr's
+In the status-first rows that branch is long (`├── `), a fixed four cells; with
+a one-cell icon or logo before the parent's name, the child's mark sits under it. Herdr's
 own order is layout order, and a pane split from its opener lands right after
 it, so no reordering is needed; a tag whose parent is gone or not directly
 above is ignored. See [show who opened an agent](setup.md#show-who-opened-an-agent).

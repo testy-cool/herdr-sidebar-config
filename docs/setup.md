@@ -226,7 +226,8 @@ task.
 A title that starts with the agent's name drops it from the task line. Only
 the folder the agent process runs in counts, not the folder its shell started
 in. The next refresh, such as a focus change, picks up a new or edited file.
-Agents without the file keep their single row.
+Agents without the file keep their single row, unless pane names are on and
+the pane has a name, which then takes the first line.
 
 The icon can be any emoji or symbol. A one-colour symbol from a Nerd Font takes
 the row's colour and fades with it; an emoji keeps its own colours. With other
@@ -254,8 +255,9 @@ The new agent is then drawn one level in, under the agent that opened it:
  └── ○ codex review · ◆
 ```
 
-A nested agent's branch is long, like `tree`'s `├── `, so its status mark sits
-under its opener's name and reads as one level down. Top-level rows keep the
+A nested agent's branch is long, like `tree`'s `├── `, so it reads as one level
+down; with a one-cell icon or logo before the opener's name, the child's status
+mark sits under that name. Top-level rows keep the
 branch length set in Settings.
 
 The tag lasts until the pane closes. It is ignored when the opener has closed,
